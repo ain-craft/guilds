@@ -168,21 +168,17 @@ public class GuildsPlugin extends JavaPlugin {
                     )
                 )
                 .then(Commands.literal("region")
-                    .executes(context -> handleRegionCommand(context, new String[]{"region"}))
-                    .then(Commands.argument("subcommand", com.mojang.brigadier.arguments.StringArgumentType.string())
+                    .then(Commands.argument("args", com.mojang.brigadier.arguments.StringArgumentType.greedyString())
                         .executes(context -> {
-                            String subCmd = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "subcommand");
-                            return handleRegionCommand(context, new String[]{"region", subCmd});
+                            String input = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "args");
+                            String[] parts = input.split(" ");
+                            String[] fullArgs = new String[parts.length + 1];
+                            fullArgs[0] = "region";
+                            System.arraycopy(parts, 0, fullArgs, 1, parts.length);
+                            return handleRegionCommand(context, fullArgs);
                         })
-                        .then(Commands.argument("args", com.mojang.brigadier.arguments.StringArgumentType.greedyString())
-                            .executes(context -> {
-                                String subCmd = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "subcommand");
-                                String args = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "args");
-                                String[] fullArgs = ("region " + subCmd + " " + args).split(" ");
-                                return handleRegionCommand(context, fullArgs);
-                            })
-                        )
                     )
+                    .executes(context -> handleRegionCommand(context, new String[]{"region"}))
                 )
                 .build(),
             "Guild management commands",

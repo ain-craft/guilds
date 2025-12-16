@@ -65,6 +65,32 @@ public class GuildMapRenderer {
             }
             player.sendMessage(rowBuilder.build());
         }
+
+        // Send footer with legend
+        sendLegend(player);
+    }
+
+    /**
+     * Sends legend showing symbol meanings.
+     */
+    private void sendLegend(Player player) {
+        Component legend = Component.text()
+            .append(Component.text("Legend: "))
+            .color(NamedTextColor.GOLD)
+            .append(Component.text(MapSymbols.PLAYER).color(NamedTextColor.AQUA))
+            .append(Component.text("=You "))
+            .color(NamedTextColor.GRAY)
+            .append(Component.text(MapSymbols.OWN_GUILD).color(NamedTextColor.GREEN))
+            .append(Component.text("=Guild "))
+            .color(NamedTextColor.GRAY)
+            .append(Component.text(MapSymbols.OTHER_GUILD).color(NamedTextColor.YELLOW))
+            .append(Component.text("=Other "))
+            .color(NamedTextColor.GRAY)
+            .append(Component.text(MapSymbols.WILDERNESS).color(NamedTextColor.DARK_GRAY))
+            .append(Component.text("=Wild"))
+            .color(NamedTextColor.GRAY)
+            .build();
+        player.sendMessage(legend);
     }
 
     /**
@@ -106,21 +132,21 @@ public class GuildMapRenderer {
     private Component buildChunkComponent(ChunkKey chunk, Map<ChunkKey, ChunkClaimData> claimData,
                                          Guild playerGuild, boolean isPlayerLocation) {
         if (isPlayerLocation) {
-            // Player location: white/aqua @ symbol
-            return Component.text("@ ")
+            // Player location: aqua @ symbol
+            return Component.text(MapSymbols.PLAYER + " ")
                 .color(NamedTextColor.AQUA);
         }
 
         ChunkClaimData data = claimData.get(chunk);
         if (data == null) {
             // Wilderness: dark gray - symbol
-            return Component.text("- ")
+            return Component.text(MapSymbols.WILDERNESS + " ")
                 .color(NamedTextColor.DARK_GRAY);
         }
 
         Guild owner = guildService.getGuildById(data.guildId());
         if (owner == null) {
-            return Component.text("? ").color(NamedTextColor.DARK_GRAY);
+            return Component.text(MapSymbols.UNKNOWN + " ").color(NamedTextColor.DARK_GRAY);
         }
 
         String symbol;
@@ -129,11 +155,11 @@ public class GuildMapRenderer {
         // Determine symbol and color
         if (playerGuild != null && owner.getId().equals(playerGuild.getId())) {
             // Own guild: green ■ symbol
-            symbol = "■";
+            symbol = MapSymbols.OWN_GUILD;
             color = NamedTextColor.GREEN;
         } else {
             // Other guild: faction color ▪ symbol
-            symbol = "▪";
+            symbol = MapSymbols.OTHER_GUILD;
             String guildColor = colorMapper.getColorForGuild(owner.getId());
             color = parseColor(guildColor);
         }
