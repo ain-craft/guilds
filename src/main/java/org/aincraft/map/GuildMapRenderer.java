@@ -55,19 +55,66 @@ public class GuildMapRenderer {
         // Send header
         sendHeader(player, playerChunkX, playerChunkZ);
 
-        // Render and send each row
+        // Render and send each row with compass directions
         for (int z = -radius; z <= radius; z++) {
             TextComponent.Builder rowBuilder = Component.text();
+
+            // Add compass direction indicator (N, S, or center)
+            if (z == -radius) {
+                rowBuilder.append(Component.text("N ").color(NamedTextColor.GOLD));
+            } else if (z == radius) {
+                rowBuilder.append(Component.text("S ").color(NamedTextColor.GOLD));
+            } else if (z == 0) {
+                rowBuilder.append(Component.text("* ").color(NamedTextColor.AQUA));
+            } else {
+                rowBuilder.append(Component.text("  "));
+            }
+
+            // Build chunk row
             for (int x = -radius; x <= radius; x++) {
                 ChunkKey chunk = new ChunkKey(player.getWorld().getName(), playerChunkX + x, playerChunkZ + z);
                 Component chunkComponent = buildChunkComponent(chunk, claimData, playerGuild, x == 0 && z == 0);
                 rowBuilder.append(chunkComponent);
             }
+
+            // Add end compass direction indicator (E or W)
+            if (z == -radius || z == radius) {
+                // Corner rows don't need end marker
+            } else if (z == 0) {
+                rowBuilder.append(Component.text("*").color(NamedTextColor.AQUA));
+            }
+
             player.sendMessage(rowBuilder.build());
         }
 
+        // Send column compass indicators (E/W)
+        sendCompassFooter(player, radius);
+
         // Send footer with legend
         sendLegend(player);
+    }
+
+    /**
+     * Sends compass footer with E/W indicators for columns.
+     */
+    private void sendCompassFooter(Player player, int radius) {
+        TextComponent.Builder footer = Component.text();
+        footer.append(Component.text("W ").color(NamedTextColor.GOLD));
+
+        for (int x = -radius; x <= radius; x++) {
+            if (x == -radius) {
+                footer.append(Component.text("  "));
+            } else if (x == 0) {
+                footer.append(Component.text("* ").color(NamedTextColor.AQUA));
+            } else if (x == radius) {
+                footer.append(Component.text("  "));
+            } else {
+                footer.append(Component.text("  "));
+            }
+        }
+
+        footer.append(Component.text("E").color(NamedTextColor.GOLD));
+        player.sendMessage(footer.build());
     }
 
     /**
@@ -115,15 +162,36 @@ public class GuildMapRenderer {
      * Sends header with map title and player coordinates.
      */
     private void sendHeader(Player player, int playerChunkX, int playerChunkZ) {
+        // Get player direction
+        String direction = getCompassDirection(player.getYaw());
+
         Component header = Component.text()
-            .append(Component.text("═══ Guild Map "))
+            .append(Component.text("┌─ Guild Map "))
             .color(NamedTextColor.GOLD)
-            .append(Component.text(String.format("[Chunk: %d, %d] ", playerChunkX, playerChunkZ)))
-            .color(NamedTextColor.GRAY)
-            .append(Component.text("═══"))
+            .append(Component.text(String.format("[%s | %d, %d] ", direction, playerChunkX, playerChunkZ)))
+            .color(NamedTextColor.AQUA)
+            .append(Component.text("─┐"))
             .color(NamedTextColor.GOLD)
             .build();
         player.sendMessage(header);
+    }
+
+    /**
+     * Gets compass direction from player yaw (0-360 degrees).
+     */
+    private String getCompassDirection(float yaw) {
+        // Normalize yaw to 0-360
+        yaw = (yaw % 360 + 360) % 360;
+
+        if (yaw >= 337.5 || yaw < 22.5) return "N";      // North
+        if (yaw >= 22.5 && yaw < 67.5) return "NE";     // Northeast
+        if (yaw >= 67.5 && yaw < 112.5) return "E";     // East
+        if (yaw >= 112.5 && yaw < 157.5) return "SE";   // Southeast
+        if (yaw >= 157.5 && yaw < 202.5) return "S";    // South
+        if (yaw >= 202.5 && yaw < 247.5) return "SW";   // Southwest
+        if (yaw >= 247.5 && yaw < 292.5) return "W";    // West
+        if (yaw >= 292.5 && yaw < 337.5) return "NW";   // Northwest
+        return "?";
     }
 
     /**
