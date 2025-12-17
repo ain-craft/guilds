@@ -8,7 +8,7 @@ import java.util.Map;
  * Assigns consistent colors to guilds using hash-based algorithm with LRU caching.
  * Each guild always gets the same color, distributed evenly across the color pool.
  */
-public class GuildColorMapper {
+public class GuildColorMapper implements ColorMapper {
     private static final List<String> COLOR_POOL = List.of(
         "aqua", "blue", "gold", "green", "light_purple",
         "red", "yellow", "dark_aqua", "dark_blue", "dark_green",
@@ -22,14 +22,36 @@ public class GuildColorMapper {
         }
     };
 
+    @Override
+    public String getColorForGuild(String guildId, String guildColor) {
+        // If guild has a configured color, use it
+        if (guildColor != null && !guildColor.isEmpty()) {
+            return guildColor;
+        }
+        // Otherwise, generate a deterministic color
+        return getGeneratedColor(guildId);
+    }
+
+    @Override
+    public String getGeneratedColor(String guildId) {
+        return guildIdToColor.computeIfAbsent(guildId, this::assignColor);
+    }
+
+    @Override
+    public void clearCache(String guildId) {
+        guildIdToColor.remove(guildId);
+    }
+
     /**
      * Gets the color for a guild. Uses LRU cache for previously assigned colors.
+     * @deprecated Use {@link #getColorForGuild(String, String)} instead
      *
      * @param guildId the guild ID
      * @return the color name (e.g., "red", "green")
      */
+    @Deprecated
     public String getColorForGuild(String guildId) {
-        return guildIdToColor.computeIfAbsent(guildId, this::assignColor);
+        return getGeneratedColor(guildId);
     }
 
     /**

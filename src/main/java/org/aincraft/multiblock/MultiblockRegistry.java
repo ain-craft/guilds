@@ -26,13 +26,7 @@ public class MultiblockRegistry {
      * @param pattern the pattern to register
      */
     public void registerBuiltIn(MultiblockPattern pattern) {
-        Objects.requireNonNull(pattern, "Pattern cannot be null");
-        if (patterns.containsKey(pattern.getId())) {
-            throw new IllegalArgumentException("Pattern already registered: " + pattern.getId());
-        }
-        patterns.put(pattern.getId(), pattern);
-        builtInIds.add(pattern.getId());
-        indexPattern(pattern);
+        registerInternal(pattern, true);
     }
 
     /**
@@ -42,11 +36,25 @@ public class MultiblockRegistry {
      * @throws IllegalArgumentException if a pattern with the same ID already exists
      */
     public void register(MultiblockPattern pattern) {
+        registerInternal(pattern, false);
+    }
+
+    /**
+     * Internal registration logic shared by both built-in and custom patterns.
+     *
+     * @param pattern the pattern to register
+     * @param isBuiltIn whether this is a built-in pattern
+     * @throws IllegalArgumentException if a pattern with the same ID already exists
+     */
+    private void registerInternal(MultiblockPattern pattern, boolean isBuiltIn) {
         Objects.requireNonNull(pattern, "Pattern cannot be null");
         if (patterns.containsKey(pattern.getId())) {
             throw new IllegalArgumentException("Pattern already registered: " + pattern.getId());
         }
         patterns.put(pattern.getId(), pattern);
+        if (isBuiltIn) {
+            builtInIds.add(pattern.getId());
+        }
         indexPattern(pattern);
     }
 

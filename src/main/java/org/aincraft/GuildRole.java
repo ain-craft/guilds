@@ -7,7 +7,7 @@ import java.util.UUID;
  * Represents a role within a guild with associated permissions.
  * Roles are guild-specific and identified by name + permission bitfield.
  */
-public final class GuildRole {
+public final class GuildRole implements Permissible {
     public static final String DEFAULT_ROLE_NAME = "Member";
 
     private final String id;
@@ -84,6 +84,7 @@ public final class GuildRole {
         this.name = Objects.requireNonNull(name, "Name cannot be null");
     }
 
+    @Override
     public int getPermissions() {
         return permissions;
     }
@@ -103,8 +104,9 @@ public final class GuildRole {
     /**
      * Checks if this role has a specific permission.
      */
+    @Override
     public boolean hasPermission(GuildPermission permission) {
-        return (permissions & permission.getBit()) != 0;
+        return Permissible.super.hasPermission(permission);
     }
 
     /**
