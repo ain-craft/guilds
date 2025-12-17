@@ -7,6 +7,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
+import org.aincraft.RelationshipService;
+import org.aincraft.RelationType;
 import org.aincraft.storage.ChunkClaimRepository;
 import org.bukkit.entity.Player;
 
@@ -18,16 +20,28 @@ import java.util.*;
  * Handles all visualization logic: grid calculation, symbol selection, component assembly.
  */
 public class GuildMapRenderer {
+    private static final int BASE_GRID_SIZE = 6;
+    private static final float COMPASS_NORTH_THRESHOLD = 22.5f;
+    private static final float COMPASS_NORTHEAST_THRESHOLD = 67.5f;
+    private static final float COMPASS_EAST_THRESHOLD = 112.5f;
+    private static final float COMPASS_SOUTHEAST_THRESHOLD = 157.5f;
+    private static final float COMPASS_SOUTH_THRESHOLD = 202.5f;
+    private static final float COMPASS_SOUTHWEST_THRESHOLD = 247.5f;
+    private static final float COMPASS_WEST_THRESHOLD = 292.5f;
+    private static final float COMPASS_NORTHWEST_THRESHOLD = 337.5f;
+
     private final GuildService guildService;
     private final ChunkClaimRepository chunkClaimRepository;
     private final GuildColorMapper colorMapper;
+    private final RelationshipService relationshipService;
     private final SimpleDateFormat dateFormat;
 
     public GuildMapRenderer(GuildService guildService, ChunkClaimRepository chunkClaimRepository,
-                           GuildColorMapper colorMapper) {
+                           GuildColorMapper colorMapper, RelationshipService relationshipService) {
         this.guildService = guildService;
         this.chunkClaimRepository = chunkClaimRepository;
         this.colorMapper = colorMapper;
+        this.relationshipService = relationshipService;
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     }
 
@@ -41,7 +55,7 @@ public class GuildMapRenderer {
         Guild playerGuild = guildService.getPlayerGuild(player.getUniqueId());
 
         // Calculate grid dimensions and boundaries
-        int gridSize = 6 + size;
+        int gridSize = BASE_GRID_SIZE + size;
         int radius = gridSize / 2;
         int playerChunkX = player.getLocation().getChunk().getX();
         int playerChunkZ = player.getLocation().getChunk().getZ();
@@ -185,14 +199,14 @@ public class GuildMapRenderer {
         // Normalize yaw to 0-360
         yaw = (yaw % 360 + 360) % 360;
 
-        if (yaw >= 337.5 || yaw < 22.5) return "N";      // North
-        if (yaw >= 22.5 && yaw < 67.5) return "NE";     // Northeast
-        if (yaw >= 67.5 && yaw < 112.5) return "E";     // East
-        if (yaw >= 112.5 && yaw < 157.5) return "SE";   // Southeast
-        if (yaw >= 157.5 && yaw < 202.5) return "S";    // South
-        if (yaw >= 202.5 && yaw < 247.5) return "SW";   // Southwest
-        if (yaw >= 247.5 && yaw < 292.5) return "W";    // West
-        if (yaw >= 292.5 && yaw < 337.5) return "NW";   // Northwest
+        if (yaw >= COMPASS_NORTHWEST_THRESHOLD || yaw < COMPASS_NORTH_THRESHOLD) return "N";      // North
+        if (yaw >= COMPASS_NORTH_THRESHOLD && yaw < COMPASS_NORTHEAST_THRESHOLD) return "NE";     // Northeast
+        if (yaw >= COMPASS_NORTHEAST_THRESHOLD && yaw < COMPASS_EAST_THRESHOLD) return "E";     // East
+        if (yaw >= COMPASS_EAST_THRESHOLD && yaw < COMPASS_SOUTHEAST_THRESHOLD) return "SE";   // Southeast
+        if (yaw >= COMPASS_SOUTHEAST_THRESHOLD && yaw < COMPASS_SOUTH_THRESHOLD) return "S";    // South
+        if (yaw >= COMPASS_SOUTH_THRESHOLD && yaw < COMPASS_SOUTHWEST_THRESHOLD) return "SW";   // Southwest
+        if (yaw >= COMPASS_SOUTHWEST_THRESHOLD && yaw < COMPASS_WEST_THRESHOLD) return "W";    // West
+        if (yaw >= COMPASS_WEST_THRESHOLD && yaw < COMPASS_NORTHWEST_THRESHOLD) return "NW";   // Northwest
         return "?";
     }
 
@@ -222,13 +236,29 @@ public class GuildMapRenderer {
         String symbol;
         NamedTextColor color;
 
-        // Determine symbol and color
+        // Determine symbol and color based on relationship
         if (playerGuild != null && owner.getId().equals(playerGuild.getId())) {
             // Own guild: green ■ symbol
             symbol = MapSymbols.OWN_GUILD;
             color = NamedTextColor.GREEN;
+        } else if (playerGuild != null) {
+            RelationType relation = relationshipService.getRelationType(playerGuild.getId(), owner.getId());
+            if (relation == RelationType.ALLY) {
+                // Allied guild: blue ◆ symbol
+                symbol = "◆";
+                color = NamedTextColor.BLUE;
+            } else if (relation == RelationType.ENEMY) {
+                // Enemy guild: red ▲ symbol
+                symbol = "▲";
+                color = NamedTextColor.RED;
+            } else {
+                // Neutral/other guild: faction color ▪ symbol
+                symbol = MapSymbols.OTHER_GUILD;
+                String guildColor = colorMapper.getColorForGuild(owner.getId());
+                color = parseColor(guildColor);
+            }
         } else {
-            // Other guild: faction color ▪ symbol
+            // No player guild: faction color ▪ symbol
             symbol = MapSymbols.OTHER_GUILD;
             String guildColor = colorMapper.getColorForGuild(owner.getId());
             color = parseColor(guildColor);

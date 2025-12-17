@@ -14,6 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class SelectionManager {
+    private static final long SELECTION_EXPIRY_MINUTES = 30;
+    private static final long SELECTION_EXPIRY_MS = SELECTION_EXPIRY_MINUTES * 60 * 1000;
+
     private final Map<UUID, PlayerSelection> selections = new ConcurrentHashMap<>();
 
     /**
@@ -73,7 +76,7 @@ public class SelectionManager {
      * Clears expired selections (older than 30 minutes).
      */
     public void clearExpired() {
-        long threshold = System.currentTimeMillis() - (30 * 60 * 1000);
+        long threshold = System.currentTimeMillis() - SELECTION_EXPIRY_MS;
         selections.entrySet().removeIf(entry -> entry.getValue().createdAt() < threshold);
     }
 

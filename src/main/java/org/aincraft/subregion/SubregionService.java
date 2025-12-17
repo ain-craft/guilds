@@ -18,14 +18,16 @@ public class SubregionService {
     private final SubregionRepository subregionRepository;
     private final GuildService guildService;
     private final SubregionTypeRegistry typeRegistry;
+    private final RegionPermissionService regionPermissionService;
     private long maxVolume = DEFAULT_MAX_VOLUME;
 
     @Inject
     public SubregionService(SubregionRepository subregionRepository, GuildService guildService,
-                            SubregionTypeRegistry typeRegistry) {
+                            SubregionTypeRegistry typeRegistry, RegionPermissionService regionPermissionService) {
         this.subregionRepository = Objects.requireNonNull(subregionRepository);
         this.guildService = Objects.requireNonNull(guildService);
         this.typeRegistry = Objects.requireNonNull(typeRegistry);
+        this.regionPermissionService = Objects.requireNonNull(regionPermissionService);
     }
 
     /**
@@ -141,6 +143,9 @@ public class SubregionService {
         if (!hasPermission && !isOwner) {
             return false;
         }
+
+        // Clean up region permissions before deleting region
+        regionPermissionService.clearRegionPermissions(region.getId());
 
         subregionRepository.delete(region.getId());
         return true;
@@ -309,28 +314,10 @@ public class SubregionService {
 
     /**
      * Checks if a player has a specific permission in a subregion.
-     * Falls back to guild permissions if subregion doesn't override.
+     * Uses new permission hierarchy: Player → Role → Region → Guild
      */
     public boolean hasSubregionPermission(Subregion region, UUID playerId, GuildPermission permission) {
-        // Guild owner always has permission
-        Guild guild = guildService.getGuildById(region.getGuildId());
-        if (guild != null && guild.isOwner(playerId)) {
-            return true;
-        }
-
-        // Region owners have all permissions in their region
-        if (region.isOwner(playerId)) {
-            return true;
-        }
-
-        // Check if subregion has explicit permissions set
-        int regionPerms = region.getPermissions();
-        if (regionPerms != 0) {
-            return (regionPerms & permission.getBit()) != 0;
-        }
-
-        // Fall back to guild permissions
-        return guildService.hasPermission(region.getGuildId(), playerId, permission);
+        return regionPermissionService.hasPermission(region, playerId, permission);
     }
 
     /**

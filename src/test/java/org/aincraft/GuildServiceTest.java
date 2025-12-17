@@ -29,6 +29,7 @@ class GuildServiceTest {
     @Mock private GuildRoleRepository roleRepository;
     @Mock private MemberRoleRepository memberRoleRepository;
     @Mock private ChunkClaimRepository chunkClaimRepository;
+    @Mock private GuildRelationshipRepository relationshipRepository;
 
     private GuildService guildService;
     private UUID ownerId;
@@ -42,7 +43,8 @@ class GuildServiceTest {
                 memberRepository,
                 roleRepository,
                 memberRoleRepository,
-                chunkClaimRepository
+                chunkClaimRepository,
+                relationshipRepository
         );
         ownerId = UUID.randomUUID();
         memberId = UUID.randomUUID();

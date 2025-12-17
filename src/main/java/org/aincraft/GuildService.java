@@ -7,6 +7,7 @@ import org.aincraft.storage.GuildRoleRepository;
 import org.aincraft.storage.MemberRoleRepository;
 import org.aincraft.storage.ChunkClaimRepository;
 import org.aincraft.storage.PlayerGuildMapping;
+import org.aincraft.storage.GuildRelationshipRepository;
 import java.util.*;
 
 /**
@@ -16,23 +17,31 @@ import java.util.*;
  * Dependency Inversion: Injected dependencies via constructor.
  */
 public class GuildService {
+    private static final int CHUNK_SIZE = 16; // Blocks per chunk dimension
+    private static final int CHUNK_CENTER_OFFSET = 8; // Offset to chunk center
+    private static final double BLOCK_CENTER_OFFSET = 0.5; // Offset to block center
+    private static final int HEAD_BLOCK_OFFSET = 1; // Offset to head block
+    private static final int GROUND_BLOCK_OFFSET = -1; // Offset to ground block
     private final GuildRepository guildRepository;
     private final PlayerGuildMapping playerGuildMapping;
     private final GuildMemberRepository memberRepository;
     private final GuildRoleRepository roleRepository;
     private final MemberRoleRepository memberRoleRepository;
     private final ChunkClaimRepository chunkClaimRepository;
+    private final GuildRelationshipRepository relationshipRepository;
 
     @Inject
     public GuildService(GuildRepository guildRepository, PlayerGuildMapping playerGuildMapping,
                         GuildMemberRepository memberRepository, GuildRoleRepository roleRepository,
-                        MemberRoleRepository memberRoleRepository, ChunkClaimRepository chunkClaimRepository) {
+                        MemberRoleRepository memberRoleRepository, ChunkClaimRepository chunkClaimRepository,
+                        GuildRelationshipRepository relationshipRepository) {
         this.guildRepository = Objects.requireNonNull(guildRepository, "Guild repository cannot be null");
         this.playerGuildMapping = Objects.requireNonNull(playerGuildMapping, "Player guild mapping cannot be null");
         this.memberRepository = Objects.requireNonNull(memberRepository, "Member repository cannot be null");
         this.roleRepository = Objects.requireNonNull(roleRepository, "Role repository cannot be null");
         this.memberRoleRepository = Objects.requireNonNull(memberRoleRepository, "Member role repository cannot be null");
         this.chunkClaimRepository = Objects.requireNonNull(chunkClaimRepository, "Chunk claim repository cannot be null");
+        this.relationshipRepository = Objects.requireNonNull(relationshipRepository, "Relationship repository cannot be null");
     }
 
     /**
@@ -98,6 +107,7 @@ public class GuildService {
         memberRoleRepository.removeAllByGuild(guildId);
         roleRepository.deleteAllByGuild(guildId);
         chunkClaimRepository.unclaimAll(guildId);
+        relationshipRepository.deleteAllByGuild(guildId);
 
         guildRepository.delete(guildId);
         return true;
@@ -827,13 +837,13 @@ public class GuildService {
 
     /**
      * Finds a safe location within a guild's homeblock for spawn.
-     * Returns a location above the ground with air blocks above.
+     * Preserves yaw/pitch from original location.
      *
      * @param guild the guild
-     * @param preferredLocation the preferred location (ignored if outside homeblock)
+     * @param originalLoc the original requested location (for yaw/pitch)
      * @return a safe location in the homeblock, or null if none found
      */
-    private org.bukkit.Location findSafeLocationInHomeblock(Guild guild, org.bukkit.Location preferredLocation) {
+    private org.bukkit.Location findSafeLocationInHomeblock(Guild guild, org.bukkit.Location originalLoc) {
         if (!guild.hasHomeblock()) {
             return null;
         }
@@ -845,23 +855,67 @@ public class GuildService {
         }
 
         // Try the center of the homeblock first
-        int centerX = homeblock.x() * 16 + 8;
-        int centerZ = homeblock.z() * 16 + 8;
+        int centerX = homeblock.x() * CHUNK_SIZE + CHUNK_CENTER_OFFSET;
+        int centerZ = homeblock.z() * CHUNK_SIZE + CHUNK_CENTER_OFFSET;
 
-        // Find safe Y coordinate (top of block with 2 air blocks above)
-        for (int y = 255; y >= 0; y--) {
-            org.bukkit.block.Block block = world.getBlockAt(centerX, y, centerZ);
-            if (!block.getType().isAir() && !block.isLiquid()) {
-                org.bukkit.Location safe = new org.bukkit.Location(world, centerX + 0.5, y + 2, centerZ + 0.5);
-                org.bukkit.block.Block above1 = world.getBlockAt(centerX, y + 1, centerZ);
-                org.bukkit.block.Block above2 = world.getBlockAt(centerX, y + 2, centerZ);
-                if (above1.getType().isAir() && above2.getType().isAir()) {
-                    return safe;
-                }
-            }
+        // Find highest solid block at center
+        int y = world.getHighestBlockYAt(centerX, centerZ);
+
+        org.bukkit.Location safeLoc = new org.bukkit.Location(
+            world,
+            centerX + BLOCK_CENTER_OFFSET,
+            y + HEAD_BLOCK_OFFSET,
+            centerZ + BLOCK_CENTER_OFFSET,
+            originalLoc.getYaw(),
+            originalLoc.getPitch()
+        );
+
+        // Basic safety check
+        if (isSafeSpawnLocation(safeLoc)) {
+            return safeLoc;
         }
 
         return null;
+    }
+
+    /**
+     * Checks if a location is safe for spawning.
+     * Ensures solid ground beneath and air for player body.
+     *
+     * @param loc the location to check
+     * @return true if safe for spawning, false otherwise
+     */
+    private boolean isSafeSpawnLocation(org.bukkit.Location loc) {
+        org.bukkit.World world = loc.getWorld();
+        if (world == null) return false;
+
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+
+        // Check feet and head are air/passable
+        org.bukkit.Material feetBlock = world.getBlockAt(x, y, z).getType();
+        org.bukkit.Material headBlock = world.getBlockAt(x, y + HEAD_BLOCK_OFFSET, z).getType();
+
+        if (!feetBlock.isAir() || !headBlock.isAir()) {
+            return false;
+        }
+
+        // Check ground is solid
+        org.bukkit.Material groundBlock = world.getBlockAt(x, y + GROUND_BLOCK_OFFSET, z).getType();
+        return groundBlock.isSolid();
+    }
+
+    /**
+     * Gets the homeblock chunk for a guild.
+     *
+     * @param guildId the guild ID
+     * @return the homeblock ChunkKey, or null if not set
+     */
+    public ChunkKey getGuildHomeblock(String guildId) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+        Guild guild = getGuildById(guildId);
+        return guild != null ? guild.getHomeblock() : null;
     }
 
     /**

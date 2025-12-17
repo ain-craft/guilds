@@ -17,6 +17,8 @@ import java.util.Optional;
  */
 public class VaultComponent {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MM/dd HH:mm");
+    private static final int TRANSACTION_PAGE_SIZE = 10;
+    private static final int UUID_DISPLAY_LENGTH = 8;
 
     private final VaultService vaultService;
 
@@ -133,10 +135,9 @@ public class VaultComponent {
             }
         }
 
-        int pageSize = 10;
-        int offset = (page - 1) * pageSize;
+        int offset = (page - 1) * TRANSACTION_PAGE_SIZE;
 
-        List<VaultTransaction> transactions = vaultService.getRecentTransactions(vault.getId(), pageSize * page);
+        List<VaultTransaction> transactions = vaultService.getRecentTransactions(vault.getId(), TRANSACTION_PAGE_SIZE * page);
 
         if (transactions.isEmpty()) {
             player.sendMessage(MessageFormatter.format(MessageFormatter.WARNING, "No transactions recorded"));
@@ -146,10 +147,10 @@ public class VaultComponent {
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Vault Transactions", " (Page " + page + ")"));
 
         int shown = 0;
-        for (int i = offset; i < transactions.size() && shown < pageSize; i++) {
+        for (int i = offset; i < transactions.size() && shown < TRANSACTION_PAGE_SIZE; i++) {
             VaultTransaction tx = transactions.get(i);
             String playerName = org.bukkit.Bukkit.getOfflinePlayer(tx.playerId()).getName();
-            if (playerName == null) playerName = tx.playerId().toString().substring(0, 8);
+            if (playerName == null) playerName = tx.playerId().toString().substring(0, UUID_DISPLAY_LENGTH);
 
             String action = tx.action() == VaultTransaction.TransactionType.DEPOSIT ? "<green>+</green>" : "<red>-</red>";
             String itemName = tx.itemType().name().toLowerCase().replace("_", " ");
@@ -160,7 +161,7 @@ public class VaultComponent {
             shown++;
         }
 
-        if (transactions.size() > page * pageSize) {
+        if (transactions.size() > page * TRANSACTION_PAGE_SIZE) {
             player.sendMessage(MessageFormatter.deserialize(
                     "<gray>Use <yellow>/g vault log " + (page + 1) + "</yellow> for more</gray>"));
         }

@@ -9,6 +9,7 @@ import java.util.UUID;
 public final class Guild {
     private static final int DEFAULT_MAX_MEMBERS = 100;
     private static final int MIN_MAX_MEMBERS = 1;
+    private static final int CHUNK_SHIFT = 4; // Block coordinates to chunk coordinates (right shift 4 = divide by 16)
 
     private final String id;
     private String name;
@@ -571,8 +572,8 @@ public final class Guild {
             return false;
         }
 
-        int chunkX = loc.getBlockX() >> 4;
-        int chunkZ = loc.getBlockZ() >> 4;
+        int chunkX = loc.getBlockX() >> CHUNK_SHIFT;
+        int chunkZ = loc.getBlockZ() >> CHUNK_SHIFT;
 
         return chunkX == homeblockChunkX && chunkZ == homeblockChunkZ;
     }

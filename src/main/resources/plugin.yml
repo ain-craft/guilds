@@ -49,6 +49,15 @@ permissions:
   guilds.setspawn:
     description: Allow setting guild spawn
     default: true
+  guilds.ally:
+    description: Allow managing alliances
+    default: true
+  guilds.enemy:
+    description: Allow managing enemies
+    default: true
+  guilds.neutral:
+    description: Allow declaring neutral status
+    default: true
   guilds.admin:
     description: All guild permissions
     children:
@@ -66,4 +75,7 @@ permissions:
       - guilds.role
       - guilds.spawn
       - guilds.setspawn
+      - guilds.ally
+      - guilds.enemy
+      - guilds.neutral
     default: op

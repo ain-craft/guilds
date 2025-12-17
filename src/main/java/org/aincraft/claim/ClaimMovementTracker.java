@@ -106,10 +106,7 @@ public class ClaimMovementTracker implements Listener {
 
         // If no owner, it's wilderness
         if (owner == null) {
-            // Still check for subregion type in unclaimed area (edge case)
-            Optional<Subregion> subregionOpt = subregionService.getSubregionAt(location);
-            String typeId = subregionOpt.map(Subregion::getType).orElse(null);
-            return new ClaimState(null, typeId, "Wilderness");
+            return ClaimState.wilderness();
         }
 
         // Owner exists - get subregion type in this guild's chunk

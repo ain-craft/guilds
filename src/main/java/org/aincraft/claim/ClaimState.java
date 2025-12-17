@@ -11,7 +11,8 @@ import java.util.Objects;
 public record ClaimState(
     String guildId,           // null = wilderness
     String subregionType,     // null = not in subregion
-    String displayName        // guild name or "Wilderness"
+    String displayName,       // guild name or "Wilderness"
+    String guildColor         // guild color in hex format (#RRGGBB) or null
 ) {
     public ClaimState {
         Objects.requireNonNull(displayName, "Display name cannot be null");
@@ -21,7 +22,7 @@ public record ClaimState(
      * Creates a wilderness state (not owned by any guild).
      */
     public static ClaimState wilderness() {
-        return new ClaimState(null, null, "Wilderness");
+        return new ClaimState(null, null, "Wilderness", null);
     }
 
     /**
@@ -32,7 +33,7 @@ public record ClaimState(
      */
     public static ClaimState ofGuild(Guild guild, String subregionType) {
         Objects.requireNonNull(guild, "Guild cannot be null");
-        return new ClaimState(guild.getId(), subregionType, guild.getName());
+        return new ClaimState(guild.getId(), subregionType, guild.getName(), guild.getColor());
     }
 
     /**

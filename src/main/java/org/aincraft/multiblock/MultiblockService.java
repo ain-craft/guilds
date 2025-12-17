@@ -16,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class MultiblockService {
+    private static final int CHUNK_SHIFT = 4; // Block coordinates to chunk coordinates (right shift 4 = divide by 16)
+
     private final MultiblockRegistry registry;
     private final MultiblockDetector detector;
 
@@ -87,8 +89,8 @@ public class MultiblockService {
             if (loc.getWorld() != null) {
                 ChunkKey chunk = new ChunkKey(
                         loc.getWorld().getName(),
-                        loc.getBlockX() >> 4,
-                        loc.getBlockZ() >> 4
+                        loc.getBlockX() >> CHUNK_SHIFT,
+                        loc.getBlockZ() >> CHUNK_SHIFT
                 );
                 chunkIndex.computeIfAbsent(chunk, k -> ConcurrentHashMap.newKeySet())
                         .add(instance.instanceId());
@@ -111,8 +113,8 @@ public class MultiblockService {
             if (loc.getWorld() != null) {
                 ChunkKey chunk = new ChunkKey(
                         loc.getWorld().getName(),
-                        loc.getBlockX() >> 4,
-                        loc.getBlockZ() >> 4
+                        loc.getBlockX() >> CHUNK_SHIFT,
+                        loc.getBlockZ() >> CHUNK_SHIFT
                 );
                 Set<String> chunkInstances = chunkIndex.get(chunk);
                 if (chunkInstances != null) {

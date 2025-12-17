@@ -9,6 +9,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.aincraft.commands.MessageFormatter;
 import org.aincraft.commands.components.RegionComponent;
 import org.aincraft.inject.GuildsModule;
+import org.aincraft.util.ColorConverter;
 import org.aincraft.listeners.GuildProtectionListener;
 import org.aincraft.map.GuildColorMapper;
 import org.aincraft.map.GuildMapRenderer;
@@ -18,6 +19,7 @@ import org.aincraft.subregion.SubregionService;
 import org.aincraft.subregion.SubregionTypeRegistry;
 import org.aincraft.subregion.RegionMovementTracker;
 import org.aincraft.subregion.RegionEntryNotifier;
+import org.aincraft.subregion.RegionPermissionService;
 import org.aincraft.claim.ClaimMovementTracker;
 import org.aincraft.claim.ClaimEntryNotifier;
 import org.aincraft.multiblock.MultiblockListener;
@@ -48,6 +50,7 @@ public class GuildsPlugin extends JavaPlugin {
     private Injector injector;
     private GuildManager guildManager;
     private GuildService guildService;
+    private RelationshipService relationshipService;
     private SubregionService subregionService;
     private RegionComponent regionComponent;
     private VaultComponent vaultComponent;
@@ -62,15 +65,17 @@ public class GuildsPlugin extends JavaPlugin {
 
         // Initialize services
         this.guildService = injector.getInstance(GuildService.class);
+        this.relationshipService = injector.getInstance(RelationshipService.class);
         this.subregionService = injector.getInstance(SubregionService.class);
         SelectionManager selectionManager = injector.getInstance(SelectionManager.class);
         this.typeRegistry = injector.getInstance(SubregionTypeRegistry.class);
-        this.regionComponent = new RegionComponent(guildService, subregionService, selectionManager, typeRegistry);
+        RegionPermissionService regionPermissionService = injector.getInstance(RegionPermissionService.class);
+        this.regionComponent = new RegionComponent(guildService, subregionService, selectionManager, typeRegistry, regionPermissionService);
 
         // Initialize map renderer
         ChunkClaimRepository chunkClaimRepository = injector.getInstance(ChunkClaimRepository.class);
         GuildColorMapper colorMapper = new GuildColorMapper();
-        this.mapRenderer = new GuildMapRenderer(guildService, chunkClaimRepository, colorMapper);
+        this.mapRenderer = new GuildMapRenderer(guildService, chunkClaimRepository, colorMapper, relationshipService);
 
         // Register protection listener
         GuildProtectionListener protectionListener = injector.getInstance(GuildProtectionListener.class);
@@ -182,13 +187,36 @@ public class GuildsPlugin extends JavaPlugin {
         return builder.buildFuture();
     }
 
+    private CompletableFuture<Suggestions> suggestColors(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) {
+        // Suggest named colors
+        builder.suggest("clear");
+        builder.suggest("black");
+        builder.suggest("dark_blue");
+        builder.suggest("dark_green");
+        builder.suggest("dark_aqua");
+        builder.suggest("dark_red");
+        builder.suggest("dark_purple");
+        builder.suggest("gold");
+        builder.suggest("gray");
+        builder.suggest("dark_gray");
+        builder.suggest("blue");
+        builder.suggest("green");
+        builder.suggest("aqua");
+        builder.suggest("red");
+        builder.suggest("light_purple");
+        builder.suggest("yellow");
+        builder.suggest("white");
+
+        return builder.buildFuture();
+    }
+
     // ==================== Command Registration ====================
 
     private void registerGuildCommands(Commands commands) {
         commands.register(
             Commands.literal("g")
                 .executes(context -> {
-                    context.getSource().getSender().sendMessage("Usage: /g <create|join|leave|delete|info|list|claim|unclaim|kick|spawn|setspawn|role|region|map|vault>");
+                    context.getSource().getSender().sendMessage("Usage: /g <create|join|leave|delete|info|list|claim|unclaim|kick|spawn|setspawn|role|region|map|vault|ally|enemy|neutral>");
                     return 1;
                 })
                 // Create command
@@ -261,6 +289,7 @@ public class GuildsPlugin extends JavaPlugin {
                 // Color command
                 .then(Commands.literal("color")
                     .then(Commands.argument("color", StringArgumentType.word())
+                        .suggests(this::suggestColors)
                         .executes(context -> handleColorCommand(context, StringArgumentType.getString(context, "color")))
                     )
                     .executes(this::handleColorCommandNoArg)
@@ -278,6 +307,17 @@ public class GuildsPlugin extends JavaPlugin {
                 .then(registerRegionCommands())
                 // Vault command
                 .then(registerVaultCommands())
+                // Ally command
+                .then(registerAllyCommands())
+                // Enemy command
+                .then(registerEnemyCommands())
+                // Neutral command
+                .then(Commands.literal("neutral")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .executes(context -> handleNeutralCommand(context, StringArgumentType.getString(context, "guildName")))
+                    )
+                )
                 .build(),
             "Guild management commands",
             List.of("guild")
@@ -422,6 +462,63 @@ public class GuildsPlugin extends JavaPlugin {
                     )
                 )
             )
+            .then(Commands.literal("setperm")
+                .then(Commands.argument("regionName", StringArgumentType.word())
+                    .suggests(this::suggestRegionNames)
+                    .then(Commands.literal("player")
+                        .then(Commands.argument("playerName", StringArgumentType.word())
+                            .suggests(this::suggestPlayerNames)
+                            .then(Commands.argument("permissions", IntegerArgumentType.integer(0))
+                                .executes(context -> handleRegionCommand(context, new String[]{"region", "setperm",
+                                    StringArgumentType.getString(context, "regionName"),
+                                    "player",
+                                    StringArgumentType.getString(context, "playerName"),
+                                    String.valueOf(IntegerArgumentType.getInteger(context, "permissions"))}))
+                            )
+                        )
+                    )
+                    .then(Commands.literal("role")
+                        .then(Commands.argument("roleName", StringArgumentType.word())
+                            .then(Commands.argument("permissions", IntegerArgumentType.integer(0))
+                                .executes(context -> handleRegionCommand(context, new String[]{"region", "setperm",
+                                    StringArgumentType.getString(context, "regionName"),
+                                    "role",
+                                    StringArgumentType.getString(context, "roleName"),
+                                    String.valueOf(IntegerArgumentType.getInteger(context, "permissions"))}))
+                            )
+                        )
+                    )
+                )
+            )
+            .then(Commands.literal("removeperm")
+                .then(Commands.argument("regionName", StringArgumentType.word())
+                    .suggests(this::suggestRegionNames)
+                    .then(Commands.literal("player")
+                        .then(Commands.argument("playerName", StringArgumentType.word())
+                            .suggests(this::suggestPlayerNames)
+                            .executes(context -> handleRegionCommand(context, new String[]{"region", "removeperm",
+                                StringArgumentType.getString(context, "regionName"),
+                                "player",
+                                StringArgumentType.getString(context, "playerName")}))
+                        )
+                    )
+                    .then(Commands.literal("role")
+                        .then(Commands.argument("roleName", StringArgumentType.word())
+                            .executes(context -> handleRegionCommand(context, new String[]{"region", "removeperm",
+                                StringArgumentType.getString(context, "regionName"),
+                                "role",
+                                StringArgumentType.getString(context, "roleName")}))
+                        )
+                    )
+                )
+            )
+            .then(Commands.literal("listperms")
+                .then(Commands.argument("regionName", StringArgumentType.word())
+                    .suggests(this::suggestRegionNames)
+                    .executes(context -> handleRegionCommand(context, new String[]{"region", "listperms",
+                        StringArgumentType.getString(context, "regionName")}))
+                )
+            )
             .build();
     }
 
@@ -448,6 +545,51 @@ public class GuildsPlugin extends JavaPlugin {
                 .then(Commands.literal("confirm")
                     .executes(context -> handleVaultCommand(context, new String[]{"vault", "destroy", "confirm"}))
                 )
+            )
+            .build();
+    }
+
+    private com.mojang.brigadier.tree.LiteralCommandNode<CommandSourceStack> registerAllyCommands() {
+        return Commands.literal("ally")
+            // Default: /g ally <guild-name> to propose
+            .then(Commands.argument("guildName", StringArgumentType.word())
+                .suggests(this::suggestGuildNames)
+                .executes(context -> handleAllyCommand(context, null, StringArgumentType.getString(context, "guildName")))
+            )
+            .then(Commands.literal("accept")
+                .then(Commands.argument("guildName", StringArgumentType.word())
+                    .suggests(this::suggestGuildNames)
+                    .executes(context -> handleAllyCommand(context, "accept", StringArgumentType.getString(context, "guildName")))
+                )
+            )
+            .then(Commands.literal("reject")
+                .then(Commands.argument("guildName", StringArgumentType.word())
+                    .suggests(this::suggestGuildNames)
+                    .executes(context -> handleAllyCommand(context, "reject", StringArgumentType.getString(context, "guildName")))
+                )
+            )
+            .then(Commands.literal("break")
+                .then(Commands.argument("guildName", StringArgumentType.word())
+                    .suggests(this::suggestGuildNames)
+                    .executes(context -> handleAllyCommand(context, "break", StringArgumentType.getString(context, "guildName")))
+                )
+            )
+            .then(Commands.literal("list")
+                .executes(context -> handleAllyCommand(context, "list", null))
+            )
+            .build();
+    }
+
+    private com.mojang.brigadier.tree.LiteralCommandNode<CommandSourceStack> registerEnemyCommands() {
+        return Commands.literal("enemy")
+            .then(Commands.literal("declare")
+                .then(Commands.argument("guildName", StringArgumentType.word())
+                    .suggests(this::suggestGuildNames)
+                    .executes(context -> handleEnemyCommand(context, "declare", StringArgumentType.getString(context, "guildName")))
+                )
+            )
+            .then(Commands.literal("list")
+                .executes(context -> handleEnemyCommand(context, "list", null))
             )
             .build();
     }
@@ -602,34 +744,21 @@ public class GuildsPlugin extends JavaPlugin {
             return 1;
         }
 
-        // Validate color
-        if (!isValidColor(colorInput)) {
+        // Convert to hex and validate
+        String hexColor = ColorConverter.toHex(colorInput);
+        if (hexColor == null) {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid color format. Use hex (#RRGGBB) or a named color"));
             return 0;
         }
 
-        guild.setColor(colorInput);
+        guild.setColor(hexColor);
         guildService.save(guild);
-        player.sendMessage(MessageFormatter.deserialize("<green>Guild color set to <gold>" + colorInput + "</gold></green>"));
+        player.sendMessage(MessageFormatter.deserialize("<green>Guild color set to <gold>" + hexColor + "</gold></green>"));
         return 1;
     }
 
     private boolean isValidColor(String color) {
-        // Check if hex format
-        if (color.startsWith("#")) {
-            if (color.length() != 7) {
-                return false;
-            }
-            try {
-                Integer.parseInt(color.substring(1), 16);
-                return true;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-        }
-
-        // Check if named color
-        return net.kyori.adventure.text.format.NamedTextColor.NAMES.value(color) != null;
+        return ColorConverter.isValidColor(color);
     }
 
     // ==================== Original Handler Methods ====================
@@ -901,6 +1030,64 @@ public class GuildsPlugin extends JavaPlugin {
     private int handleVaultCommand(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, String[] args) {
         CommandSender sender = context.getSource().getSender();
         vaultComponent.execute(sender, args);
+        return 1;
+    }
+
+    private int handleAllyCommand(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, String subcommand, String guildName) {
+        CommandSender sender = context.getSource().getSender();
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Only players can manage alliances"));
+            return 0;
+        }
+
+        // Build args array based on whether subcommand is provided
+        String[] args;
+        if (subcommand == null) {
+            // Direct ally: /g ally <guild-name>
+            args = new String[]{"ally", guildName};
+        } else if (guildName == null) {
+            // List: /g ally list
+            args = new String[]{"ally", subcommand};
+        } else {
+            // Subcommand with guild: /g ally accept <guild-name>
+            args = new String[]{"ally", subcommand, guildName};
+        }
+
+        org.aincraft.commands.components.AllyComponent allyComponent =
+            new org.aincraft.commands.components.AllyComponent(guildService, relationshipService);
+        allyComponent.execute(sender, args);
+        return 1;
+    }
+
+    private int handleEnemyCommand(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, String subcommand, String guildName) {
+        CommandSender sender = context.getSource().getSender();
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Only players can manage enemies"));
+            return 0;
+        }
+
+        String[] args = guildName == null
+            ? new String[]{"enemy", subcommand}
+            : new String[]{"enemy", subcommand, guildName};
+
+        org.aincraft.commands.components.EnemyComponent enemyComponent =
+            new org.aincraft.commands.components.EnemyComponent(guildService, relationshipService);
+        enemyComponent.execute(sender, args);
+        return 1;
+    }
+
+    private int handleNeutralCommand(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, String guildName) {
+        CommandSender sender = context.getSource().getSender();
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Only players can declare neutral"));
+            return 0;
+        }
+
+        String[] args = new String[]{"neutral", guildName};
+
+        org.aincraft.commands.components.NeutralComponent neutralComponent =
+            new org.aincraft.commands.components.NeutralComponent(guildService, relationshipService);
+        neutralComponent.execute(sender, args);
         return 1;
     }
 }

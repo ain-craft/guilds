@@ -35,6 +35,7 @@ class SubregionServiceTest {
     @Mock private SubregionRepository subregionRepository;
     @Mock private GuildService guildService;
     @Mock private SubregionTypeRegistry typeRegistry;
+    @Mock private RegionPermissionService regionPermissionService;
     @Mock private World world;
 
     private SubregionService subregionService;
@@ -44,7 +45,7 @@ class SubregionServiceTest {
 
     @BeforeEach
     void setUp() {
-        subregionService = new SubregionService(subregionRepository, guildService, typeRegistry);
+        subregionService = new SubregionService(subregionRepository, guildService, typeRegistry, regionPermissionService);
         playerId = UUID.randomUUID();
         ownerId = UUID.randomUUID();
         guildId = "guild-123";
@@ -282,9 +283,8 @@ class SubregionServiceTest {
             Subregion region = mock(Subregion.class);
             when(region.getGuildId()).thenReturn(guildId);
 
-            Guild guild = mock(Guild.class);
-            when(guild.isOwner(playerId)).thenReturn(true);
-            when(guildService.getGuildById(guildId)).thenReturn(guild);
+            when(regionPermissionService.hasPermission(region, playerId, GuildPermission.BUILD))
+                    .thenReturn(true);
 
             boolean result = subregionService.hasSubregionPermission(
                     region, playerId, GuildPermission.BUILD);
@@ -299,9 +299,8 @@ class SubregionServiceTest {
             when(region.getGuildId()).thenReturn(guildId);
             when(region.isOwner(playerId)).thenReturn(true);
 
-            Guild guild = mock(Guild.class);
-            when(guild.isOwner(playerId)).thenReturn(false);
-            when(guildService.getGuildById(guildId)).thenReturn(guild);
+            when(regionPermissionService.hasPermission(region, playerId, GuildPermission.BUILD))
+                    .thenReturn(true);
 
             boolean result = subregionService.hasSubregionPermission(
                     region, playerId, GuildPermission.BUILD);
@@ -317,9 +316,10 @@ class SubregionServiceTest {
             when(region.isOwner(playerId)).thenReturn(false);
             when(region.getPermissions()).thenReturn(GuildPermission.BUILD.getBit());
 
-            Guild guild = mock(Guild.class);
-            when(guild.isOwner(playerId)).thenReturn(false);
-            when(guildService.getGuildById(guildId)).thenReturn(guild);
+            when(regionPermissionService.hasPermission(region, playerId, GuildPermission.BUILD))
+                    .thenReturn(true);
+            when(regionPermissionService.hasPermission(region, playerId, GuildPermission.DESTROY))
+                    .thenReturn(false);
 
             boolean hasBuild = subregionService.hasSubregionPermission(
                     region, playerId, GuildPermission.BUILD);
@@ -338,17 +338,14 @@ class SubregionServiceTest {
             when(region.isOwner(playerId)).thenReturn(false);
             when(region.getPermissions()).thenReturn(0); // No explicit permissions
 
-            Guild guild = mock(Guild.class);
-            when(guild.isOwner(playerId)).thenReturn(false);
-            when(guildService.getGuildById(guildId)).thenReturn(guild);
-            when(guildService.hasPermission(guildId, playerId, GuildPermission.BUILD))
+            when(regionPermissionService.hasPermission(region, playerId, GuildPermission.BUILD))
                     .thenReturn(true);
 
             boolean result = subregionService.hasSubregionPermission(
                     region, playerId, GuildPermission.BUILD);
 
             assertThat(result).isTrue();
-            verify(guildService).hasPermission(guildId, playerId, GuildPermission.BUILD);
+            verify(regionPermissionService).hasPermission(region, playerId, GuildPermission.BUILD);
         }
     }
 

@@ -1,14 +1,11 @@
 package org.aincraft.commands.components;
 
 import org.aincraft.Guild;
+import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
-import org.aincraft.subregion.SelectionManager;
-import org.aincraft.subregion.Subregion;
-import org.aincraft.subregion.SubregionService;
-import org.aincraft.subregion.SubregionType;
-import org.aincraft.subregion.SubregionTypeRegistry;
+import org.aincraft.subregion.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -21,20 +18,23 @@ import java.util.UUID;
 
 /**
  * Command component for managing subregions.
- * Handles: pos1, pos2, create, delete, list, info, addowner, removeowner, types, settype
+ * Handles: pos1, pos2, create, delete, list, info, addowner, removeowner, types, settype, setperm, removeperm, listperms
  */
 public class RegionComponent implements GuildCommand {
     private final GuildService guildService;
     private final SubregionService subregionService;
     private final SelectionManager selectionManager;
     private final SubregionTypeRegistry typeRegistry;
+    private final RegionPermissionService regionPermissionService;
 
     public RegionComponent(GuildService guildService, SubregionService subregionService,
-                           SelectionManager selectionManager, SubregionTypeRegistry typeRegistry) {
+                           SelectionManager selectionManager, SubregionTypeRegistry typeRegistry,
+                           RegionPermissionService regionPermissionService) {
         this.guildService = guildService;
         this.subregionService = subregionService;
         this.selectionManager = selectionManager;
         this.typeRegistry = typeRegistry;
+        this.regionPermissionService = regionPermissionService;
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RegionComponent implements GuildCommand {
 
     @Override
     public String getUsage() {
-        return "/g region <pos1|pos2|create|delete|list|info|types|settype|addowner|removeowner>";
+        return "/g region <pos1|pos2|create|delete|list|info|types|settype|addowner|removeowner|setperm|removeperm|listperms>";
     }
 
     @Override
@@ -77,6 +77,9 @@ public class RegionComponent implements GuildCommand {
             case "settype" -> handleSetType(player, args);
             case "addowner" -> handleAddOwner(player, args);
             case "removeowner" -> handleRemoveOwner(player, args);
+            case "setperm" -> handleSetPerm(player, args);
+            case "removeperm" -> handleRemovePerm(player, args);
+            case "listperms" -> handleListPerms(player, args);
             default -> {
                 showHelp(player);
                 yield true;
@@ -96,6 +99,11 @@ public class RegionComponent implements GuildCommand {
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region settype <name> <type>", "Change region type"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region addowner <region> <player>", "Add region owner"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region removeowner <region> <player>", "Remove region owner"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region setperm <region> player <player> <perms>", "Set player permissions"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region setperm <region> role <role> <perms>", "Set role permissions"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region removeperm <region> player <player>", "Remove player permissions"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region removeperm <region> role <role>", "Remove role permissions"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region listperms <region>", "List region permissions"));
     }
 
     private boolean handlePos1(Player player) {
@@ -409,6 +417,192 @@ public class RegionComponent implements GuildCommand {
         } else {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
                     "Failed to remove owner. Region may not exist, you lack permission, or can't remove the creator."));
+        }
+
+        return true;
+    }
+
+    private boolean handleSetPerm(Player player, String[] args) {
+        if (args.length < 6) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g region setperm <region> <player|role> <target> <permissions>"));
+            return true;
+        }
+
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
+            return true;
+        }
+
+        String regionName = args[2];
+        String subjectType = args[3].toLowerCase();
+        String targetIdentifier = args[4];
+        String permString = args[5];
+
+        Optional<Subregion> regionOpt = subregionService.getSubregionByName(guild.getId(), regionName);
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Region not found: " + regionName));
+            return true;
+        }
+
+        Subregion region = regionOpt.get();
+
+        // Check if player can modify permissions
+        if (!regionPermissionService.canModifyPermissions(region, player.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You don't have permission to modify region permissions"));
+            return true;
+        }
+
+        // Parse permissions
+        int permissions;
+        try {
+            permissions = Integer.parseInt(permString);
+        } catch (NumberFormatException e) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid permission value. Use an integer (e.g., " + GuildPermission.BUILD.getBit() + " for BUILD)"));
+            return true;
+        }
+
+        switch (subjectType) {
+            case "player" -> {
+                Player target = Bukkit.getPlayer(targetIdentifier);
+                if (target == null) {
+                    player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Player not found or not online"));
+                    return true;
+                }
+
+                regionPermissionService.setPlayerPermission(region.getId(), target.getUniqueId(), permissions, player.getUniqueId());
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<green>Set permissions for <gold>" + target.getName() + "</gold> in region <gold>" + regionName + "</gold> to <yellow>" + permissions + "</yellow></green>"));
+            }
+            case "role" -> {
+                regionPermissionService.setRolePermission(region.getId(), targetIdentifier, permissions, player.getUniqueId());
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<green>Set permissions for role <gold>" + targetIdentifier + "</gold> in region <gold>" + regionName + "</gold> to <yellow>" + permissions + "</yellow></green>"));
+            }
+            default -> {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Subject type must be 'player' or 'role'"));
+                return true;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean handleRemovePerm(Player player, String[] args) {
+        if (args.length < 5) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g region removeperm <region> <player|role> <target>"));
+            return true;
+        }
+
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
+            return true;
+        }
+
+        String regionName = args[2];
+        String subjectType = args[3].toLowerCase();
+        String targetIdentifier = args[4];
+
+        Optional<Subregion> regionOpt = subregionService.getSubregionByName(guild.getId(), regionName);
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Region not found: " + regionName));
+            return true;
+        }
+
+        Subregion region = regionOpt.get();
+
+        // Check if player can modify permissions
+        if (!regionPermissionService.canModifyPermissions(region, player.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You don't have permission to modify region permissions"));
+            return true;
+        }
+
+        boolean removed;
+        switch (subjectType) {
+            case "player" -> {
+                Player target = Bukkit.getPlayer(targetIdentifier);
+                if (target == null) {
+                    player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Player not found or not online"));
+                    return true;
+                }
+
+                removed = regionPermissionService.removePlayerPermission(region.getId(), target.getUniqueId());
+                if (removed) {
+                    player.sendMessage(MessageFormatter.deserialize(
+                            "<green>Removed permissions for <gold>" + target.getName() + "</gold> from region <gold>" + regionName + "</gold></green>"));
+                } else {
+                    player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "No permissions found for that player"));
+                }
+            }
+            case "role" -> {
+                removed = regionPermissionService.removeRolePermission(region.getId(), targetIdentifier);
+                if (removed) {
+                    player.sendMessage(MessageFormatter.deserialize(
+                            "<green>Removed permissions for role <gold>" + targetIdentifier + "</gold> from region <gold>" + regionName + "</gold></green>"));
+                } else {
+                    player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "No permissions found for that role"));
+                }
+            }
+            default -> {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Subject type must be 'player' or 'role'"));
+                return true;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean handleListPerms(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g region listperms <region>"));
+            return true;
+        }
+
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
+            return true;
+        }
+
+        String regionName = args[2];
+
+        Optional<Subregion> regionOpt = subregionService.getSubregionByName(guild.getId(), regionName);
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Region not found: " + regionName));
+            return true;
+        }
+
+        Subregion region = regionOpt.get();
+        List<RegionPermission> permissions = regionPermissionService.getRegionPermissions(region.getId());
+
+        player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Permissions for " + regionName, ""));
+
+        if (region.getPermissions() != 0) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Default", String.valueOf(region.getPermissions())));
+        }
+
+        List<RegionPermission> playerPerms = regionPermissionService.getPlayerPermissions(region.getId());
+        if (!playerPerms.isEmpty()) {
+            player.sendMessage(MessageFormatter.deserialize("<yellow>Player Permissions:</yellow>"));
+            for (RegionPermission perm : playerPerms) {
+                String playerName = Bukkit.getOfflinePlayer(UUID.fromString(perm.getSubjectId())).getName();
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<gray>  • <gold>" + (playerName != null ? playerName : perm.getSubjectId()) + "</gold>: " + perm.getPermissions() + "</gray>"));
+            }
+        }
+
+        List<RegionPermission> rolePerms = regionPermissionService.getRolePermissions(region.getId());
+        if (!rolePerms.isEmpty()) {
+            player.sendMessage(MessageFormatter.deserialize("<yellow>Role Permissions:</yellow>"));
+            for (RegionPermission perm : rolePerms) {
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<gray>  • <gold>" + perm.getSubjectId() + "</gold>: " + perm.getPermissions() + "</gray>"));
+            }
+        }
+
+        if (permissions.isEmpty() && region.getPermissions() == 0) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.WARNING, "No custom permissions set"));
         }
 
         return true;

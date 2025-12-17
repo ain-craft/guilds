@@ -3,6 +3,7 @@ package org.aincraft.claim;
 import com.google.inject.Inject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.aincraft.claim.events.PlayerEnterClaimEvent;
 import org.aincraft.subregion.SubregionTypeRegistry;
@@ -71,12 +72,11 @@ public class ClaimEntryNotifier implements Listener {
     private Component buildOwnershipChangeMessage(ClaimState newState, ClaimState previousState) {
         if (newState.guildId() == null) {
             // Exiting to wilderness
-            return Component.text("Entering ", NamedTextColor.GRAY)
-                    .append(Component.text("Wilderness", NamedTextColor.GRAY, TextDecoration.BOLD));
+            return Component.text("~Wilderness", NamedTextColor.GREEN);
         } else {
-            // Entering guild territory
-            return Component.text("Entering ", NamedTextColor.GRAY)
-                    .append(Component.text(newState.displayName(), NamedTextColor.GOLD, TextDecoration.BOLD));
+            // Entering guild territory - use guild color if set
+            TextColor guildNameColor = getGuildColor(newState.guildColor());
+            return Component.text("~" + newState.displayName(), guildNameColor);
         }
     }
 
@@ -94,10 +94,11 @@ public class ClaimEntryNotifier implements Listener {
                 .map(t -> t.getDisplayName())
                 .orElse(newState.subregionType());
 
+        TextColor guildNameColor = getGuildColor(newState.guildColor());
         return Component.text("Entering ", NamedTextColor.GRAY)
                 .append(Component.text("[" + typeName + "]", NamedTextColor.AQUA))
                 .append(Component.text(": ", NamedTextColor.GRAY))
-                .append(Component.text(newState.displayName(), NamedTextColor.YELLOW));
+                .append(Component.text(newState.displayName(), guildNameColor));
     }
 
     /**
@@ -109,9 +110,10 @@ public class ClaimEntryNotifier implements Listener {
 
         // Show previous state
         if (previousState != null && previousState.guildId() != null) {
-            result = Component.text(previousState.displayName(), NamedTextColor.DARK_RED);
+            TextColor prevColor = getGuildColor(previousState.guildColor());
+            result = Component.text("~" + previousState.displayName(), prevColor);
         } else if (previousState != null) {
-            result = Component.text("Wilderness", NamedTextColor.DARK_RED);
+            result = Component.text("~Wilderness", NamedTextColor.GREEN);
         } else {
             result = Component.empty();
         }
@@ -121,9 +123,10 @@ public class ClaimEntryNotifier implements Listener {
 
         // Show new state
         if (newState.guildId() == null) {
-            result = result.append(Component.text("Wilderness", NamedTextColor.GRAY, TextDecoration.BOLD));
+            result = result.append(Component.text("~Wilderness", NamedTextColor.GREEN));
         } else {
-            result = result.append(Component.text(newState.displayName(), NamedTextColor.GOLD, TextDecoration.BOLD));
+            TextColor newColor = getGuildColor(newState.guildColor());
+            result = result.append(Component.text("~" + newState.displayName(), newColor));
         }
 
         // Add type if present
@@ -137,5 +140,24 @@ public class ClaimEntryNotifier implements Listener {
         }
 
         return result;
+    }
+
+    /**
+     * Converts a guild color (hex format) to a TextColor for display.
+     * Falls back to GOLD if no color is set.
+     *
+     * @param hexColor the hex color (#RRGGBB) or null
+     * @return a TextColor to use for display
+     */
+    private TextColor getGuildColor(String hexColor) {
+        if (hexColor != null && hexColor.startsWith("#") && hexColor.length() == 7) {
+            try {
+                return TextColor.fromHexString(hexColor);
+            } catch (IllegalArgumentException e) {
+                // Fall through to default
+            }
+        }
+        // Default to GOLD if no color set
+        return NamedTextColor.GOLD;
     }
 }
