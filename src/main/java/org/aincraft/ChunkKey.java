@@ -1,8 +1,7 @@
 package org.aincraft;
 
-import org.bukkit.Chunk;
-
 import java.util.Objects;
+import org.bukkit.Chunk;
 
 /**
  * Immutable identifier for a chunk, consisting of world name and chunk coordinates.

@@ -1,16 +1,17 @@
 package org.aincraft.subregion;
 
 import com.google.inject.Inject;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.Guild;
+import org.aincraft.GuildDefaultPermissionsService;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
-import org.aincraft.GuildDefaultPermissionsService;
-import org.aincraft.RelationshipService;
 import org.aincraft.RelationType;
+import org.aincraft.RelationshipService;
 import org.aincraft.storage.MemberRoleRepository;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for region-specific permission operations.

@@ -2,6 +2,10 @@ package org.aincraft.vault;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
@@ -12,11 +16,6 @@ import org.aincraft.subregion.SubregionService;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service for vault business logic.

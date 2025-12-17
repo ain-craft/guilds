@@ -1,9 +1,8 @@
 package org.aincraft.storage;
 
-import org.aincraft.GuildRole;
-
 import java.util.List;
 import java.util.Optional;
+import org.aincraft.GuildRole;
 
 /**
  * Repository for managing guild roles.

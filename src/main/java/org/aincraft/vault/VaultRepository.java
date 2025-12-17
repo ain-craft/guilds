@@ -1,8 +1,7 @@
 package org.aincraft.vault;
 
-import org.bukkit.inventory.ItemStack;
-
 import java.util.Optional;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * Repository interface for vault persistence.

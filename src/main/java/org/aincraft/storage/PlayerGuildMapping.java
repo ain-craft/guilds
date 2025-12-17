@@ -1,7 +1,7 @@
 package org.aincraft.storage;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Manages player-to-guild mappings to enforce one guild per player.

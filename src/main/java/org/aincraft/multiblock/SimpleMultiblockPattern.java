@@ -1,11 +1,10 @@
 package org.aincraft.multiblock;
 
-import org.bukkit.Material;
-import org.bukkit.util.Vector;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.bukkit.Material;
+import org.bukkit.util.Vector;
 
 /**
  * Default implementation of MultiblockPattern.

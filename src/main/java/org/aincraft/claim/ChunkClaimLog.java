@@ -1,9 +1,8 @@
 package org.aincraft.claim;
 
-import org.aincraft.ChunkKey;
-
 import java.util.Objects;
 import java.util.UUID;
+import org.aincraft.ChunkKey;
 
 /**
  * Represents a chunk claim or unclaim log entry.

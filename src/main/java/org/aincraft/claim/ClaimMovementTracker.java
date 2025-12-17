@@ -1,6 +1,11 @@
 package org.aincraft.claim;
 
 import com.google.inject.Inject;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
@@ -17,9 +22,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks player movement across guild claims at chunk level.

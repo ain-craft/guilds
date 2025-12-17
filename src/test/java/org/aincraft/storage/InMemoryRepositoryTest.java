@@ -1,17 +1,16 @@
 package org.aincraft.storage;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
 
 /**
  * Tests for in-memory repository implementations.

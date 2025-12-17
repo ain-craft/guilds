@@ -2,12 +2,16 @@ package org.aincraft.storage;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import org.aincraft.GuildDefaultPermissions;
-import org.aincraft.subregion.SubjectType;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Objects;
 import java.util.Optional;
+import org.aincraft.GuildDefaultPermissions;
+import org.aincraft.subregion.SubjectType;
 
 /**
  * SQLite implementation of GuildDefaultPermissionsRepository.

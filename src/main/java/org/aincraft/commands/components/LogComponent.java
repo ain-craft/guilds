@@ -1,15 +1,12 @@
 package org.aincraft.commands.components;
 
+import java.util.Objects;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
 import org.aincraft.commands.MessageFormatter;
 import org.aincraft.vault.VaultService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Parent coordinator for /g log commands.

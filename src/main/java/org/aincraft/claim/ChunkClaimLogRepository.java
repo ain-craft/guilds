@@ -1,9 +1,8 @@
 package org.aincraft.claim;
 
-import org.aincraft.ChunkKey;
-
 import java.util.List;
 import java.util.UUID;
+import org.aincraft.ChunkKey;
 
 /**
  * Repository for managing chunk claim log entries.

@@ -1,18 +1,16 @@
 package org.aincraft.claim;
 
 import com.google.inject.Inject;
+import java.util.Objects;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.aincraft.claim.events.PlayerEnterClaimEvent;
 import org.aincraft.subregion.SubregionTypeRegistry;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-
-import java.util.Objects;
 
 /**
  * Displays action bar notifications when players enter/exit guild claims.

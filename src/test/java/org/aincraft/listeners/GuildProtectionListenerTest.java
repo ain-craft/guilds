@@ -1,12 +1,23 @@
 package org.aincraft.listeners;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
+import org.aincraft.GuildDefaultPermissionsService;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
 import org.aincraft.RelationshipService;
-import org.aincraft.RelationType;
-import org.aincraft.GuildDefaultPermissionsService;
 import org.aincraft.subregion.Subregion;
 import org.aincraft.subregion.SubregionService;
 import org.bukkit.Chunk;
@@ -28,13 +39,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for GuildProtectionListener.

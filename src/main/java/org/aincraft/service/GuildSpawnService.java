@@ -1,6 +1,9 @@
 package org.aincraft.service;
 
 import com.google.inject.Inject;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.storage.GuildRepository;
@@ -8,10 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service for managing guild spawn locations.

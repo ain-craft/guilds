@@ -1,11 +1,10 @@
 package org.aincraft;
 
 import com.google.inject.Inject;
-import org.aincraft.storage.GuildDefaultPermissionsRepository;
-import org.aincraft.subregion.SubjectType;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.aincraft.storage.GuildDefaultPermissionsRepository;
+import org.aincraft.subregion.SubjectType;
 
 /**
  * Service for managing guild default permissions.

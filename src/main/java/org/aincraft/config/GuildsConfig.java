@@ -2,9 +2,8 @@ package org.aincraft.config;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.aincraft.GuildsPlugin;
-
 import java.util.Objects;
+import org.aincraft.GuildsPlugin;
 
 @Singleton
 public class GuildsConfig {

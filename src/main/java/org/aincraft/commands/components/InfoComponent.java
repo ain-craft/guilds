@@ -1,28 +1,22 @@
 package org.aincraft.commands.components;
 
 import com.google.inject.Inject;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.RelationshipService;
-import org.aincraft.RelationType;
-import org.aincraft.RelationStatus;
-import org.aincraft.GuildRelationship;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
 import org.aincraft.subregion.RegionTypeLimit;
-import org.aincraft.subregion.RegionTypeLimitRepository;
 import org.aincraft.subregion.SubregionService;
 import org.aincraft.subregion.SubregionType;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Component for viewing guild information.

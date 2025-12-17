@@ -2,8 +2,8 @@ package org.aincraft.commands.components;
 
 import com.google.inject.Inject;
 import org.aincraft.Guild;
-import org.aincraft.GuildService;
 import org.aincraft.GuildPermission;
+import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
 import org.bukkit.command.CommandSender;

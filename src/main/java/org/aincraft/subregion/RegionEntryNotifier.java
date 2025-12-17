@@ -1,6 +1,7 @@
 package org.aincraft.subregion;
 
 import com.google.inject.Inject;
+import java.util.Optional;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -9,8 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-
-import java.util.Optional;
 
 /**
  * Listens for region entry events and displays action bar notifications.

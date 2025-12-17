@@ -1,11 +1,13 @@
 package org.aincraft;
 
 import com.google.inject.Inject;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.aincraft.storage.GuildRelationshipRepository;
 import org.aincraft.storage.GuildRepository;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for guild relationship operations.

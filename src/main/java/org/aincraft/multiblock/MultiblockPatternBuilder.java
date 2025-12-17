@@ -1,12 +1,11 @@
 package org.aincraft.multiblock;
 
-import org.bukkit.Material;
-import org.bukkit.util.Vector;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.bukkit.Material;
+import org.bukkit.util.Vector;
 
 /**
  * Fluent builder for creating multiblock patterns.

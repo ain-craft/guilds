@@ -1,12 +1,14 @@
 package org.aincraft.multiblock;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.util.Vector;
-
-import java.util.*;
 
 /**
  * Stateless multiblock detection logic.

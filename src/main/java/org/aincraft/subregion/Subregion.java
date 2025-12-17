@@ -1,9 +1,11 @@
 package org.aincraft.subregion;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import org.bukkit.Location;
-import org.bukkit.World;
-
-import java.util.*;
 
 /**
  * Represents a freeform cuboid subregion within guild-claimed chunks.

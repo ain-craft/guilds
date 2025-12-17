@@ -1,6 +1,7 @@
 package org.aincraft.commands.components;
 
 import com.google.inject.Inject;
+import java.util.List;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
@@ -10,8 +11,6 @@ import org.aincraft.subregion.Subregion;
 import org.aincraft.subregion.SubregionService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.List;
 
 /**
  * Component for unclaiming the chunk the player is standing in.

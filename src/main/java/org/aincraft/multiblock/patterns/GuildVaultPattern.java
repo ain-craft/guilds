@@ -1,10 +1,9 @@
 package org.aincraft.multiblock.patterns;
 
+import java.util.Map;
 import org.aincraft.multiblock.MultiblockPattern;
 import org.aincraft.multiblock.MultiblockPatternBuilder;
 import org.bukkit.Material;
-
-import java.util.Map;
 
 /**
  * 3x3x3 iron block vault with chest in center.

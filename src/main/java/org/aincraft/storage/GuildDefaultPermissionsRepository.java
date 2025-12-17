@@ -1,9 +1,8 @@
 package org.aincraft.storage;
 
+import java.util.Optional;
 import org.aincraft.GuildDefaultPermissions;
 import org.aincraft.subregion.SubjectType;
-
-import java.util.Optional;
 
 /**
  * Manages guild default permissions storage and retrieval.

@@ -1,6 +1,10 @@
 package org.aincraft.subregion;
 
 import com.google.inject.Inject;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.aincraft.subregion.events.PlayerEnterSubregionEvent;
 import org.aincraft.subregion.events.PlayerExitSubregionEvent;
 import org.bukkit.Bukkit;
@@ -12,11 +16,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks player movement and fires enter/exit events for subregions.

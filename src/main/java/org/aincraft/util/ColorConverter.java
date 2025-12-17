@@ -1,7 +1,6 @@
 package org.aincraft.util;
 
 import net.kyori.adventure.text.format.NamedTextColor;
-import java.util.Objects;
 
 /**
  * Utility for converting color names and hex codes to canonical hex format.

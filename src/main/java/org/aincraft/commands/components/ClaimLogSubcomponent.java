@@ -1,17 +1,13 @@
 package org.aincraft.commands.components;
 
-import org.aincraft.GuildService;
-import org.aincraft.claim.ChunkClaimLog;
-import org.aincraft.claim.ChunkClaimLogRepository;
-import org.aincraft.commands.MessageFormatter;
-import org.bukkit.entity.Player;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import org.aincraft.GuildService;
+import org.aincraft.claim.ChunkClaimLog;
+import org.aincraft.commands.MessageFormatter;
+import org.bukkit.entity.Player;
 
 /**
  * Displays chunk claim/unclaim history for the player's guild.

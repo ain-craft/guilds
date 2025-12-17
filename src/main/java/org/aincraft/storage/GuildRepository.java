@@ -1,7 +1,8 @@
 package org.aincraft.storage;
 
+import java.util.List;
+import java.util.Optional;
 import org.aincraft.Guild;
-import java.util.*;
 
 /**
  * Manages guild storage and retrieval by ID and name.

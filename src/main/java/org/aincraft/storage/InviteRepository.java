@@ -1,10 +1,9 @@
 package org.aincraft.storage;
 
-import org.aincraft.GuildInvite;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.aincraft.GuildInvite;
 
 /**
  * Repository for guild invite persistence.

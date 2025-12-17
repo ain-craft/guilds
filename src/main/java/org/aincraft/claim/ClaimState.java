@@ -1,8 +1,7 @@
 package org.aincraft.claim;
 
-import org.aincraft.Guild;
-
 import java.util.Objects;
+import org.aincraft.Guild;
 
 /**
  * Immutable state representing current guild claim and subregion context for a player.

@@ -2,6 +2,7 @@ package org.aincraft.role.gui;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import java.util.Objects;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildRole;
 import org.aincraft.GuildService;
@@ -13,8 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-
-import java.util.Objects;
 
 /**
  * Listener for role creation wizard GUI events.

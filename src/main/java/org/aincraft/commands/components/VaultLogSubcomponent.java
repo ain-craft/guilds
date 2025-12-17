@@ -1,17 +1,15 @@
 package org.aincraft.commands.components;
 
-import org.aincraft.commands.MessageFormatter;
-import org.aincraft.vault.Vault;
-import org.aincraft.vault.VaultService;
-import org.aincraft.vault.VaultTransaction;
-import org.bukkit.entity.Player;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
+import org.aincraft.commands.MessageFormatter;
+import org.aincraft.vault.Vault;
+import org.aincraft.vault.VaultService;
+import org.aincraft.vault.VaultTransaction;
+import org.bukkit.entity.Player;
 
 /**
  * Displays vault transaction history.

@@ -1,35 +1,34 @@
 package org.aincraft.listeners;
 
 import com.google.inject.Inject;
+import java.util.Optional;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
+import org.aincraft.GuildDefaultPermissionsService;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
-import org.aincraft.GuildDefaultPermissionsService;
-import org.aincraft.RelationshipService;
 import org.aincraft.RelationType;
+import org.aincraft.RelationshipService;
 import org.aincraft.commands.MessageFormatter;
+import org.aincraft.subregion.SubjectType;
 import org.aincraft.subregion.Subregion;
 import org.aincraft.subregion.SubregionService;
-import org.aincraft.subregion.SubjectType;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.Material;
-
-import java.util.Optional;
 
 /**
  * Event listener for protecting guild-claimed chunks and subregions.

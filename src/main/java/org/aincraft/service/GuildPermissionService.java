@@ -1,6 +1,10 @@
 package org.aincraft.service;
 
 import com.google.inject.Inject;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildRole;
@@ -9,11 +13,6 @@ import org.aincraft.storage.GuildMemberRepository;
 import org.aincraft.storage.GuildRepository;
 import org.aincraft.storage.GuildRoleRepository;
 import org.aincraft.storage.MemberRoleRepository;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service for checking and managing permissions.

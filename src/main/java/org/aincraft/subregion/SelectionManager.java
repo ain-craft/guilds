@@ -2,14 +2,13 @@ package org.aincraft.subregion;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 /**
  * Manages player selections for subregion creation.

@@ -1,8 +1,7 @@
 package org.aincraft.vault;
 
-import org.bukkit.Material;
-
 import java.util.UUID;
+import org.bukkit.Material;
 
 /**
  * Represents a vault transaction for audit logging.

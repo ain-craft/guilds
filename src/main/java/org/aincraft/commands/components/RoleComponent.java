@@ -1,6 +1,7 @@
 package org.aincraft.commands.components;
 
 import com.google.inject.Inject;
+import java.util.List;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildRole;
@@ -11,9 +12,6 @@ import org.aincraft.role.gui.RoleCreationGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Component for managing guild roles.

@@ -1,18 +1,22 @@
 package org.aincraft;
 
 import com.google.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.claim.ChunkClaimLog;
 import org.aincraft.claim.ChunkClaimLogRepository;
 import org.aincraft.config.GuildsConfig;
-import org.aincraft.storage.GuildRepository;
-import org.aincraft.storage.GuildMemberRepository;
-import org.aincraft.storage.GuildRoleRepository;
-import org.aincraft.storage.MemberRoleRepository;
 import org.aincraft.storage.ChunkClaimRepository;
-import org.aincraft.storage.PlayerGuildMapping;
+import org.aincraft.storage.GuildMemberRepository;
 import org.aincraft.storage.GuildRelationshipRepository;
+import org.aincraft.storage.GuildRepository;
+import org.aincraft.storage.GuildRoleRepository;
 import org.aincraft.storage.InviteRepository;
-import java.util.*;
+import org.aincraft.storage.MemberRoleRepository;
+import org.aincraft.storage.PlayerGuildMapping;
 
 /**
  * Service layer for guild operations using dependency injection.

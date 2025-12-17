@@ -1,6 +1,7 @@
 package org.aincraft.claim;
 
 import com.google.inject.Inject;
+import java.util.Objects;
 import org.aincraft.ChunkKey;
 import org.aincraft.ClaimResult;
 import org.aincraft.Guild;
@@ -11,8 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-
-import java.util.Objects;
 
 /**
  * Listens for players entering new chunks and triggers auto-claim if enabled.

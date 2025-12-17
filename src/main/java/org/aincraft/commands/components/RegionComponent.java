@@ -1,20 +1,28 @@
 package org.aincraft.commands.components;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
-import org.aincraft.subregion.*;
+import org.aincraft.subregion.RegionPermission;
+import org.aincraft.subregion.RegionPermissionService;
+import org.aincraft.subregion.RegionRole;
+import org.aincraft.subregion.RegionTypeLimit;
+import org.aincraft.subregion.RegionTypeLimitRepository;
+import org.aincraft.subregion.SelectionManager;
+import org.aincraft.subregion.Subregion;
+import org.aincraft.subregion.SubregionService;
+import org.aincraft.subregion.SubregionType;
+import org.aincraft.subregion.SubregionTypeRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Command component for managing subregions.

@@ -1,15 +1,13 @@
 package org.aincraft.vault;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Optional;
 import org.aincraft.commands.MessageFormatter;
 import org.aincraft.vault.gui.VaultGUI;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Command component for vault operations.

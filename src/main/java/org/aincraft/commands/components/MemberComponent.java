@@ -1,8 +1,12 @@
 package org.aincraft.commands.components;
 
 import com.google.inject.Inject;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
@@ -14,12 +18,6 @@ import org.aincraft.storage.MemberRoleRepository;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Component for checking member information including roles, permissions, and join date.

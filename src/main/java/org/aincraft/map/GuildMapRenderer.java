@@ -1,6 +1,12 @@
 package org.aincraft.map;
 
 import com.google.inject.Inject;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -8,13 +14,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
-import org.aincraft.RelationshipService;
 import org.aincraft.RelationType;
+import org.aincraft.RelationshipService;
 import org.aincraft.storage.ChunkClaimRepository;
 import org.bukkit.entity.Player;
-
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * Renders a visual guild map showing chunk claims in a grid format.

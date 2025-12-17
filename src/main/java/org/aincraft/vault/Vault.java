@@ -1,9 +1,8 @@
 package org.aincraft.vault;
 
+import java.util.UUID;
 import org.aincraft.multiblock.Rotation;
 import org.bukkit.inventory.ItemStack;
-
-import java.util.UUID;
 
 /**
  * Represents a guild vault with storage contents.

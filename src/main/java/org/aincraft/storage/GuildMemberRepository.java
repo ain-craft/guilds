@@ -1,11 +1,10 @@
 package org.aincraft.storage;
 
-import org.aincraft.GuildPermission;
-import org.aincraft.MemberPermissions;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.aincraft.GuildPermission;
+import org.aincraft.MemberPermissions;
 
 /**
  * Repository for managing guild member permissions.

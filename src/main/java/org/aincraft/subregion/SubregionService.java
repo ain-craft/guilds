@@ -1,13 +1,19 @@
 package org.aincraft.subregion;
 
 import com.google.inject.Inject;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.UUID;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
 import org.bukkit.Location;
-
-import java.util.*;
 
 /**
  * Service for managing subregions with validation and business logic.

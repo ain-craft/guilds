@@ -1,20 +1,18 @@
 package org.aincraft.service;
 
 import com.google.inject.Inject;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.aincraft.ChunkKey;
 import org.aincraft.ClaimResult;
 import org.aincraft.Guild;
-import org.aincraft.GuildPermission;
 import org.aincraft.claim.ChunkClaimLog;
 import org.aincraft.claim.ChunkClaimLogRepository;
 import org.aincraft.config.GuildsConfig;
 import org.aincraft.storage.ChunkClaimRepository;
 import org.aincraft.storage.GuildRepository;
-
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service for managing chunk claims.

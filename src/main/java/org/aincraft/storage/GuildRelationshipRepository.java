@@ -1,11 +1,10 @@
 package org.aincraft.storage;
 
-import org.aincraft.GuildRelationship;
-import org.aincraft.RelationType;
-import org.aincraft.RelationStatus;
-
 import java.util.List;
 import java.util.Optional;
+import org.aincraft.GuildRelationship;
+import org.aincraft.RelationStatus;
+import org.aincraft.RelationType;
 
 /**
  * Manages guild relationship storage and retrieval.

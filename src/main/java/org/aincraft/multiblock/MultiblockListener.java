@@ -2,6 +2,7 @@ package org.aincraft.multiblock;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import java.util.List;
 import org.aincraft.multiblock.events.MultiblockBreakEvent;
 import org.aincraft.multiblock.events.MultiblockFormEvent;
 import org.bukkit.Bukkit;
@@ -12,8 +13,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-
-import java.util.List;
 
 /**
  * Listens to block events and fires multiblock formation/break events.

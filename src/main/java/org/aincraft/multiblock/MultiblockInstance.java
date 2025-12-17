@@ -1,9 +1,8 @@
 package org.aincraft.multiblock;
 
-import org.bukkit.Location;
-
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.Location;
 
 /**
  * Represents a detected multiblock instance in the world.
