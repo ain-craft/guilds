@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.RelationshipService;
@@ -15,6 +16,7 @@ public class NeutralComponent implements GuildCommand {
     private final GuildService guildService;
     private final RelationshipService relationshipService;
 
+    @Inject
     public NeutralComponent(GuildService guildService, RelationshipService relationshipService) {
         this.guildService = guildService;
         this.relationshipService = relationshipService;

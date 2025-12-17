@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -27,6 +28,7 @@ public class MemberComponent implements GuildCommand {
     private final GuildService guildService;
     private final MemberRoleRepository memberRoleRepository;
 
+    @Inject
     public MemberComponent(GuildService guildService, MemberRoleRepository memberRoleRepository) {
         this.guildService = guildService;
         this.memberRoleRepository = memberRoleRepository;

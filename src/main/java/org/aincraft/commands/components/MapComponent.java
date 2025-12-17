@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
@@ -18,6 +19,7 @@ public class MapComponent implements GuildCommand {
     private static final int MIN_SIZE = 1;
     private static final int DEFAULT_SIZE = 1;
 
+    @Inject
     public MapComponent(GuildService guildService, GuildMapRenderer mapRenderer) {
         this.guildService = guildService;
         this.mapRenderer = mapRenderer;

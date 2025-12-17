@@ -32,8 +32,8 @@ public class AutoClaimListener implements Listener {
     public void onEnterClaim(PlayerEnterClaimEvent event) {
         Player player = event.getPlayer();
 
-        // Check if player has auto-claim enabled
-        if (!autoClaimManager.isAutoClaimEnabled(player.getUniqueId())) {
+        // Check if player has auto-claim mode enabled
+        if (autoClaimManager.getMode(player.getUniqueId()) != AutoClaimMode.AUTO_CLAIM) {
             return;
         }
 
@@ -54,8 +54,8 @@ public class AutoClaimListener implements Listener {
         // Get player's guild
         Guild guild = guildService.getPlayerGuild(player.getUniqueId());
         if (guild == null) {
-            // Player not in guild, disable auto-claim
-            autoClaimManager.disableAutoClaim(player.getUniqueId());
+            // Player not in guild, disable auto mode
+            autoClaimManager.disable(player.getUniqueId());
             player.sendMessage(MessageFormatter.deserialize("<red>Auto-claim disabled: you are not in a guild</red>"));
             return;
         }
@@ -69,37 +69,35 @@ public class AutoClaimListener implements Listener {
         // Handle result
         switch (result.getStatus()) {
             case SUCCESS -> {
-                // Send success message unless in silent mode
-                if (!autoClaimManager.isSilentMode(player.getUniqueId())) {
-                    player.sendMessage(MessageFormatter.deserialize(
-                            "<green>Claimed chunk at <gold>" + chunk.x() + ", " + chunk.z() + "</gold></green>"));
-                }
+                // Send success message
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<green>Claimed chunk at <gold>" + chunk.x() + ", " + chunk.z() + "</gold></green>"));
             }
             case ALREADY_OWNED -> {
                 // Already own this chunk, silently continue
             }
             case NOT_ADJACENT -> {
-                autoClaimManager.disableAutoClaim(player.getUniqueId());
+                autoClaimManager.disable(player.getUniqueId());
                 player.sendMessage(MessageFormatter.deserialize(
                         "<red>Auto-claim disabled: chunk not adjacent to guild territory</red>"));
             }
             case NO_PERMISSION -> {
-                autoClaimManager.disableAutoClaim(player.getUniqueId());
+                autoClaimManager.disable(player.getUniqueId());
                 player.sendMessage(MessageFormatter.deserialize(
                         "<red>Auto-claim disabled: you don't have CLAIM permission</red>"));
             }
             case ALREADY_CLAIMED -> {
-                autoClaimManager.disableAutoClaim(player.getUniqueId());
+                autoClaimManager.disable(player.getUniqueId());
                 player.sendMessage(MessageFormatter.deserialize(
                         "<red>Auto-claim disabled: chunk already claimed by another guild</red>"));
             }
             case LIMIT_EXCEEDED -> {
-                autoClaimManager.disableAutoClaim(player.getUniqueId());
+                autoClaimManager.disable(player.getUniqueId());
                 player.sendMessage(MessageFormatter.deserialize(
                         "<red>Auto-claim disabled: guild chunk limit reached</red>"));
             }
             case FAILURE -> {
-                autoClaimManager.disableAutoClaim(player.getUniqueId());
+                autoClaimManager.disable(player.getUniqueId());
                 player.sendMessage(MessageFormatter.deserialize(
                         "<red>Auto-claim disabled: " + result.getReason() + "</red>"));
             }

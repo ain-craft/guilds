@@ -53,7 +53,6 @@ import org.aincraft.claim.ChunkClaimLogRepository;
 import org.aincraft.claim.SQLiteChunkClaimLogRepository;
 import org.aincraft.claim.AutoClaimManager;
 import org.aincraft.claim.AutoClaimListener;
-import org.aincraft.claim.AutoUnclaimManager;
 import org.aincraft.claim.AutoUnclaimListener;
 import org.aincraft.InviteService;
 import org.aincraft.storage.InviteRepository;
@@ -85,9 +84,8 @@ import org.aincraft.commands.components.ToggleComponent;
 import org.aincraft.commands.components.MapComponent;
 import org.aincraft.commands.components.KickComponent;
 import org.aincraft.commands.components.ClaimComponent;
-import org.aincraft.commands.components.ClaimToggleComponent;
 import org.aincraft.commands.components.UnclaimComponent;
-import org.aincraft.commands.components.UnclaimToggleComponent;
+import org.aincraft.commands.components.AutoComponent;
 import org.aincraft.commands.components.InviteComponent;
 import org.aincraft.commands.components.AcceptComponent;
 import org.aincraft.commands.components.DeclineComponent;
@@ -139,12 +137,9 @@ public class GuildsModule extends AbstractModule {
         bind(ClaimMovementTracker.class).in(Singleton.class);
         bind(ClaimEntryNotifier.class).in(Singleton.class);
 
-        // Auto-claim system
+        // Auto-claim/unclaim system
         bind(AutoClaimManager.class).in(Singleton.class);
         bind(AutoClaimListener.class).in(Singleton.class);
-
-        // Auto-unclaim system
-        bind(AutoUnclaimManager.class).in(Singleton.class);
         bind(AutoUnclaimListener.class).in(Singleton.class);
 
         // Claim logging system
@@ -202,9 +197,8 @@ public class GuildsModule extends AbstractModule {
         bind(MapComponent.class).in(Singleton.class);
         bind(KickComponent.class).in(Singleton.class);
         bind(ClaimComponent.class).in(Singleton.class);
-        bind(ClaimToggleComponent.class).in(Singleton.class);
         bind(UnclaimComponent.class).in(Singleton.class);
-        bind(UnclaimToggleComponent.class).in(Singleton.class);
+        bind(AutoComponent.class).in(Singleton.class);
         bind(InviteComponent.class).in(Singleton.class);
         bind(AcceptComponent.class).in(Singleton.class);
         bind(DeclineComponent.class).in(Singleton.class);

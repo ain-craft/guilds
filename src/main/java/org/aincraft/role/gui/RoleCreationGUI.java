@@ -260,6 +260,7 @@ public class RoleCreationGUI implements InventoryHolder {
             case EDIT_ROLE -> Material.FEATHER;
             case ADMIN -> Material.NETHER_STAR;
             case VIEW_LOGS -> Material.PAPER;
+            case EDIT_GUILD_INFO -> Material.OAK_SIGN;
         };
     }
 
@@ -294,6 +295,7 @@ public class RoleCreationGUI implements InventoryHolder {
             case EDIT_ROLE -> "Edit role permissions";
             case ADMIN -> "Full admin rights";
             case VIEW_LOGS -> "View guild logs";
+            case EDIT_GUILD_INFO -> "Change guild name/description";
         };
     }
 }

@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Player;
 public class JoinComponent implements GuildCommand {
     private final GuildService guildService;
 
+    @Inject
     public JoinComponent(GuildService guildService) {
         this.guildService = guildService;
     }

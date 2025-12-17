@@ -18,10 +18,10 @@ public final class MessageFormatter {
 
     // Message format constants
     public static final String HEADER = "<gold>=== %s ===%s</gold>";
-    public static final String USAGE = "<yellow>%s<reset> <gray>- %s</gray>";
+    public static final String USAGE = "<yellow>%s <gray>- %s</gray>";
     public static final String ERROR = "<red>%s</red>";
     public static final String SUCCESS = "<green>%s</green>";
-    public static final String INFO = "<yellow>%s<reset>: <white>%s</white>";
+    public static final String INFO = "<yellow>%s: <white>%s</white>";
     public static final String HIGHLIGHT = "<gold>%s</gold>";
     public static final String WARNING = "<yellow>%s</yellow>";
     public static final String SUBHEADER = "<yellow>%s</yellow>";

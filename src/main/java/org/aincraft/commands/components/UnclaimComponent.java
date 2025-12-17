@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
@@ -20,6 +21,7 @@ public class UnclaimComponent implements GuildCommand {
     private final GuildService guildService;
     private final SubregionService subregionService;
 
+    @Inject
     public UnclaimComponent(GuildService guildService, SubregionService subregionService) {
         this.guildService = guildService;
         this.subregionService = subregionService;

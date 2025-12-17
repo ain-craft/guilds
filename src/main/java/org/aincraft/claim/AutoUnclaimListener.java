@@ -22,13 +22,13 @@ import java.util.Objects;
  */
 public class AutoUnclaimListener implements Listener {
     private final GuildService guildService;
-    private final AutoUnclaimManager autoUnclaimManager;
+    private final AutoClaimManager autoClaimManager;
     private final SubregionService subregionService;
 
     @Inject
-    public AutoUnclaimListener(GuildService guildService, AutoUnclaimManager autoUnclaimManager, SubregionService subregionService) {
+    public AutoUnclaimListener(GuildService guildService, AutoClaimManager autoClaimManager, SubregionService subregionService) {
         this.guildService = Objects.requireNonNull(guildService, "Guild service cannot be null");
-        this.autoUnclaimManager = Objects.requireNonNull(autoUnclaimManager, "Auto unclaim manager cannot be null");
+        this.autoClaimManager = Objects.requireNonNull(autoClaimManager, "Auto claim manager cannot be null");
         this.subregionService = Objects.requireNonNull(subregionService, "Subregion service cannot be null");
     }
 
@@ -36,8 +36,8 @@ public class AutoUnclaimListener implements Listener {
     public void onEnterClaim(PlayerEnterClaimEvent event) {
         Player player = event.getPlayer();
 
-        // Check if player has auto-unclaim enabled
-        if (!autoUnclaimManager.isAutoUnclaimEnabled(player.getUniqueId())) {
+        // Check if player has auto-unclaim mode enabled
+        if (autoClaimManager.getMode(player.getUniqueId()) != AutoClaimMode.AUTO_UNCLAIM) {
             return;
         }
 
@@ -57,8 +57,8 @@ public class AutoUnclaimListener implements Listener {
         // Get player's guild
         Guild guild = guildService.getPlayerGuild(player.getUniqueId());
         if (guild == null) {
-            // Player not in guild, disable auto-unclaim
-            autoUnclaimManager.disableAutoUnclaim(player.getUniqueId());
+            // Player not in guild, disable auto mode
+            autoClaimManager.disable(player.getUniqueId());
             player.sendMessage(MessageFormatter.deserialize("<red>Auto-unclaim disabled: you are not in a guild</red>"));
             return;
         }
@@ -74,7 +74,7 @@ public class AutoUnclaimListener implements Listener {
         // Check for subregions in this chunk - blocks unclaim
         List<Subregion> subregions = subregionService.getSubregionsInChunk(chunk);
         if (!subregions.isEmpty()) {
-            autoUnclaimManager.disableAutoUnclaim(player.getUniqueId());
+            autoClaimManager.disable(player.getUniqueId());
             player.sendMessage(MessageFormatter.deserialize(
                     "<red>Auto-unclaim disabled: chunk contains " + subregions.size() + " subregion(s)</red>"));
             return;
@@ -85,14 +85,12 @@ public class AutoUnclaimListener implements Listener {
 
         // Handle result
         if (success) {
-            // Send success message unless in silent mode
-            if (!autoUnclaimManager.isSilentMode(player.getUniqueId())) {
-                player.sendMessage(MessageFormatter.deserialize(
-                        "<green>Unclaimed chunk at <gold>" + chunk.x() + ", " + chunk.z() + "</gold></green>"));
-            }
+            // Send success message
+            player.sendMessage(MessageFormatter.deserialize(
+                    "<green>Unclaimed chunk at <gold>" + chunk.x() + ", " + chunk.z() + "</gold></green>"));
         } else {
             // Failed - disable and notify
-            autoUnclaimManager.disableAutoUnclaim(player.getUniqueId());
+            autoClaimManager.disable(player.getUniqueId());
             player.sendMessage(MessageFormatter.deserialize(
                     "<red>Auto-unclaim disabled: you don't have UNCLAIM permission</red>"));
         }

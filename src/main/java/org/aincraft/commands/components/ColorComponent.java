@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
@@ -16,6 +17,7 @@ import org.bukkit.entity.Player;
 public class ColorComponent implements GuildCommand {
     private final GuildService guildService;
 
+    @Inject
     public ColorComponent(GuildService guildService) {
         this.guildService = guildService;
     }

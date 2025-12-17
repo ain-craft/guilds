@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.GuildPermission;
@@ -15,6 +16,7 @@ import org.bukkit.entity.Player;
 public class SetspawnComponent implements GuildCommand {
     private final GuildService guildService;
 
+    @Inject
     public SetspawnComponent(GuildService guildService) {
         this.guildService = guildService;
     }
@@ -59,6 +61,13 @@ public class SetspawnComponent implements GuildCommand {
             return true;
         }
 
+        // Check if guild has homeblock before attempting to set spawn
+        if (!guild.hasHomeblock()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
+                "✗ Failed to set spawn. Guild must have a homeblock (claim a chunk first)"));
+            return true;
+        }
+
         // Attempt to set spawn
         org.bukkit.Location originalLoc = player.getLocation();
         if (guildService.setGuildSpawn(guild.getId(), player.getUniqueId(), originalLoc)) {
@@ -81,7 +90,7 @@ public class SetspawnComponent implements GuildCommand {
         }
 
         player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
-            "✗ Failed to set spawn. Guild must have a homeblock (claim a chunk first)"));
+            "✗ Failed to set spawn. Could not find safe location in homeblock."));
         return true;
     }
 

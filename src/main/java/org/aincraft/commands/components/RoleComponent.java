@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildRole;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public final class RoleComponent implements GuildCommand {
     private final GuildService guildService;
 
+    @Inject
     public RoleComponent(GuildService guildService) {
         this.guildService = guildService;
     }

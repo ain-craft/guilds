@@ -21,7 +21,8 @@ public enum GuildPermission {
     DELETE_ROLE(1 << 13),    // 8192
     EDIT_ROLE(1 << 14),      // 16384
     ADMIN(1 << 15),          // 32768
-    VIEW_LOGS(1 << 16);      // 65536
+    VIEW_LOGS(1 << 16),      // 65536
+    EDIT_GUILD_INFO(1 << 17); // 131072
 
     private final int bit;
 

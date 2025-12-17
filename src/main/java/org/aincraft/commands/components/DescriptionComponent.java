@@ -1,7 +1,9 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
+import org.aincraft.GuildPermission;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
 import org.bukkit.command.CommandSender;
@@ -14,6 +16,7 @@ import org.bukkit.entity.Player;
 public class DescriptionComponent implements GuildCommand {
     private final GuildService guildService;
 
+    @Inject
     public DescriptionComponent(GuildService guildService) {
         this.guildService = guildService;
     }
@@ -57,9 +60,9 @@ public class DescriptionComponent implements GuildCommand {
             return true;
         }
 
-        // Check if player is guild owner
-        if (!guild.isOwner(player.getUniqueId())) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Only the guild owner can change guild description"));
+        // Check if player has EDIT_GUILD_INFO permission
+        if (!guildService.hasPermission(guild.getId(), player.getUniqueId(), GuildPermission.EDIT_GUILD_INFO)) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You don't have permission to change guild description"));
             return true;
         }
 

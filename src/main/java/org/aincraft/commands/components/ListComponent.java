@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
@@ -16,6 +17,7 @@ public class ListComponent implements GuildCommand {
     private final GuildService guildService;
     private static final int GUILDS_PER_PAGE = 5;
 
+    @Inject
     public ListComponent(GuildService guildService) {
         this.guildService = guildService;
     }

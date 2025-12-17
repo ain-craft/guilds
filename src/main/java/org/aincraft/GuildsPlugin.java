@@ -48,7 +48,6 @@ public class GuildsPlugin extends JavaPlugin {
     private MultiblockRegistry multiblockRegistry;
     private GuildMapRenderer mapRenderer;
     private AutoClaimManager autoClaimManager;
-    private AutoUnclaimManager autoUnclaimManager;
 
     // Injected command components
     private CreateComponent createComponent;
@@ -66,9 +65,8 @@ public class GuildsPlugin extends JavaPlugin {
     private MapComponent mapComponent;
     private KickComponent kickComponent;
     private ClaimComponent claimComponent;
-    private ClaimToggleComponent claimToggleComponent;
     private UnclaimComponent unclaimComponent;
-    private UnclaimToggleComponent unclaimToggleComponent;
+    private AutoComponent autoComponent;
     private InviteComponent inviteComponent;
     private AcceptComponent acceptComponent;
     private DeclineComponent declineComponent;
@@ -107,11 +105,8 @@ public class GuildsPlugin extends JavaPlugin {
         // Register claim tracking
         registerClaimTracking();
 
-        // Register auto-claim system
+        // Register auto-claim/unclaim system
         registerAutoClaimSystem();
-
-        // Register auto-unclaim system
-        registerAutoUnclaimSystem();
 
         // Register multiblock system
         registerMultiblockSystem();
@@ -130,9 +125,6 @@ public class GuildsPlugin extends JavaPlugin {
     public void onDisable() {
         if (autoClaimManager != null) {
             autoClaimManager.clearAll();
-        }
-        if (autoUnclaimManager != null) {
-            autoUnclaimManager.clearAll();
         }
         getLogger().info("Guilds plugin disabled!");
     }
@@ -153,9 +145,8 @@ public class GuildsPlugin extends JavaPlugin {
         mapComponent = injector.getInstance(MapComponent.class);
         kickComponent = injector.getInstance(KickComponent.class);
         claimComponent = injector.getInstance(ClaimComponent.class);
-        claimToggleComponent = injector.getInstance(ClaimToggleComponent.class);
         unclaimComponent = injector.getInstance(UnclaimComponent.class);
-        unclaimToggleComponent = injector.getInstance(UnclaimToggleComponent.class);
+        autoComponent = injector.getInstance(AutoComponent.class);
         inviteComponent = injector.getInstance(InviteComponent.class);
         acceptComponent = injector.getInstance(AcceptComponent.class);
         declineComponent = injector.getInstance(DeclineComponent.class);
@@ -209,12 +200,8 @@ public class GuildsPlugin extends JavaPlugin {
     private void registerAutoClaimSystem() {
         this.autoClaimManager = injector.getInstance(AutoClaimManager.class);
         AutoClaimListener autoClaimListener = injector.getInstance(AutoClaimListener.class);
-        getServer().getPluginManager().registerEvents(autoClaimListener, this);
-    }
-
-    private void registerAutoUnclaimSystem() {
-        this.autoUnclaimManager = injector.getInstance(AutoUnclaimManager.class);
         AutoUnclaimListener autoUnclaimListener = injector.getInstance(AutoUnclaimListener.class);
+        getServer().getPluginManager().registerEvents(autoClaimListener, this);
         getServer().getPluginManager().registerEvents(autoUnclaimListener, this);
     }
 
@@ -363,35 +350,35 @@ public class GuildsPlugin extends JavaPlugin {
                     .executes(context -> {
                         claimComponent.execute(context.getSource().getSender(), new String[]{"claim"});
                         return 1;
-                    })
-                    .then(Commands.literal("toggle")
-                        .executes(context -> {
-                            claimToggleComponent.execute(context.getSource().getSender(), new String[]{"claim", "toggle"});
-                            return 1;
-                        })
-                        .then(Commands.literal("silent")
-                            .executes(context -> {
-                                claimToggleComponent.execute(context.getSource().getSender(), new String[]{"claim", "toggle", "silent"});
-                                return 1;
-                            }))))
+                    }))
                 .then(Commands.literal("unclaim")
                     .executes(context -> {
                         unclaimComponent.execute(context.getSource().getSender(), new String[]{"unclaim"});
                         return 1;
                     })
-                    .then(Commands.literal("toggle")
-                        .executes(context -> {
-                            unclaimToggleComponent.execute(context.getSource().getSender(), new String[]{"unclaim", "toggle"});
-                            return 1;
-                        })
-                        .then(Commands.literal("silent")
-                            .executes(context -> {
-                                unclaimToggleComponent.execute(context.getSource().getSender(), new String[]{"unclaim", "toggle", "silent"});
-                                return 1;
-                            })))
                     .then(Commands.literal("all")
                         .executes(context -> {
                             unclaimComponent.execute(context.getSource().getSender(), new String[]{"unclaim", "all"});
+                            return 1;
+                        })))
+                .then(Commands.literal("auto")
+                    .executes(context -> {
+                        autoComponent.execute(context.getSource().getSender(), new String[]{"auto"});
+                        return 1;
+                    })
+                    .then(Commands.literal("claim")
+                        .executes(context -> {
+                            autoComponent.execute(context.getSource().getSender(), new String[]{"auto", "claim"});
+                            return 1;
+                        }))
+                    .then(Commands.literal("unclaim")
+                        .executes(context -> {
+                            autoComponent.execute(context.getSource().getSender(), new String[]{"auto", "unclaim"});
+                            return 1;
+                        }))
+                    .then(Commands.literal("off")
+                        .executes(context -> {
+                            autoComponent.execute(context.getSource().getSender(), new String[]{"auto", "off"});
                             return 1;
                         })))
                 .then(Commands.literal("kick")

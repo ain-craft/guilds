@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -31,6 +32,7 @@ public class InfoComponent implements GuildCommand {
     private final RelationshipService relationshipService;
     private final SubregionService subregionService;
 
+    @Inject
     public InfoComponent(GuildService guildService, RelationshipService relationshipService,
                          SubregionService subregionService) {
         this.guildService = guildService;

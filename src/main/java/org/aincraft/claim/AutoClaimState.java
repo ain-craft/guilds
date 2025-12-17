@@ -2,28 +2,28 @@ package org.aincraft.claim;
 
 /**
  * Immutable state representing a player's auto-claim configuration.
- * Tracks whether auto-claim is enabled and if silent mode is active.
+ * Uses a tristate mode: OFF, AUTO_CLAIM, or AUTO_UNCLAIM.
  */
-public record AutoClaimState(boolean isEnabled, boolean isSilent) {
+public record AutoClaimState(AutoClaimMode mode) {
 
     /**
-     * Creates an enabled auto-claim state with messages.
+     * Creates an OFF state (no auto action).
      */
-    public static AutoClaimState enabled() {
-        return new AutoClaimState(true, false);
+    public static AutoClaimState off() {
+        return new AutoClaimState(AutoClaimMode.OFF);
     }
 
     /**
-     * Creates an enabled auto-claim state in silent mode (no success messages).
+     * Creates an AUTO_CLAIM state (automatically claim wilderness chunks).
      */
-    public static AutoClaimState enabledSilent() {
-        return new AutoClaimState(true, true);
+    public static AutoClaimState autoClaim() {
+        return new AutoClaimState(AutoClaimMode.AUTO_CLAIM);
     }
 
     /**
-     * Creates a disabled auto-claim state.
+     * Creates an AUTO_UNCLAIM state (automatically unclaim owned chunks).
      */
-    public static AutoClaimState disabled() {
-        return new AutoClaimState(false, false);
+    public static AutoClaimState autoUnclaim() {
+        return new AutoClaimState(AutoClaimMode.AUTO_UNCLAIM);
     }
 }

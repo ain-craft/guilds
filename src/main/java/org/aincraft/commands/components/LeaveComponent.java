@@ -1,5 +1,6 @@
 package org.aincraft.commands.components;
 
+import com.google.inject.Inject;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.LeaveResult;
@@ -14,6 +15,7 @@ import org.bukkit.entity.Player;
 public class LeaveComponent implements GuildCommand {
     private final GuildService guildService;
 
+    @Inject
     public LeaveComponent(GuildService guildService) {
         this.guildService = guildService;
     }

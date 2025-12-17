@@ -1,5 +1,6 @@
 package org.aincraft.map;
 
+import com.google.inject.Inject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -36,6 +37,7 @@ public class GuildMapRenderer {
     private final RelationshipService relationshipService;
     private final SimpleDateFormat dateFormat;
 
+    @Inject
     public GuildMapRenderer(GuildService guildService, ChunkClaimRepository chunkClaimRepository,
                            GuildColorMapper colorMapper, RelationshipService relationshipService) {
         this.guildService = guildService;
