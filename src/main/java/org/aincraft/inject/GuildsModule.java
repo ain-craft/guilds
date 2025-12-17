@@ -70,6 +70,33 @@ import org.aincraft.vault.VaultHandler;
 import org.aincraft.vault.gui.VaultGUIListener;
 import org.aincraft.role.gui.RoleCreationGUIListener;
 import org.aincraft.config.GuildsConfig;
+import org.aincraft.commands.components.CreateComponent;
+import org.aincraft.commands.components.JoinComponent;
+import org.aincraft.commands.components.LeaveComponent;
+import org.aincraft.commands.components.DisbandComponent;
+import org.aincraft.commands.components.InfoComponent;
+import org.aincraft.commands.components.ListComponent;
+import org.aincraft.commands.components.SpawnComponent;
+import org.aincraft.commands.components.SetspawnComponent;
+import org.aincraft.commands.components.ColorComponent;
+import org.aincraft.commands.components.DescriptionComponent;
+import org.aincraft.commands.components.NameComponent;
+import org.aincraft.commands.components.ToggleComponent;
+import org.aincraft.commands.components.MapComponent;
+import org.aincraft.commands.components.KickComponent;
+import org.aincraft.commands.components.ClaimComponent;
+import org.aincraft.commands.components.ClaimToggleComponent;
+import org.aincraft.commands.components.UnclaimComponent;
+import org.aincraft.commands.components.UnclaimToggleComponent;
+import org.aincraft.commands.components.InviteComponent;
+import org.aincraft.commands.components.AcceptComponent;
+import org.aincraft.commands.components.DeclineComponent;
+import org.aincraft.commands.components.InvitesComponent;
+import org.aincraft.commands.components.RoleComponent;
+import org.aincraft.commands.components.MemberComponent;
+import org.aincraft.commands.components.AllyComponent;
+import org.aincraft.commands.components.EnemyComponent;
+import org.aincraft.commands.components.NeutralComponent;
 
 import java.io.File;
 
@@ -158,6 +185,35 @@ public class GuildsModule extends AbstractModule {
 
         // Configuration
         bind(GuildsConfig.class).in(Singleton.class);
+
+        // Command components
+        bind(CreateComponent.class).in(Singleton.class);
+        bind(JoinComponent.class).in(Singleton.class);
+        bind(LeaveComponent.class).in(Singleton.class);
+        bind(DisbandComponent.class).in(Singleton.class);
+        bind(InfoComponent.class).in(Singleton.class);
+        bind(ListComponent.class).in(Singleton.class);
+        bind(SpawnComponent.class).in(Singleton.class);
+        bind(SetspawnComponent.class).in(Singleton.class);
+        bind(ColorComponent.class).in(Singleton.class);
+        bind(DescriptionComponent.class).in(Singleton.class);
+        bind(NameComponent.class).in(Singleton.class);
+        bind(ToggleComponent.class).in(Singleton.class);
+        bind(MapComponent.class).in(Singleton.class);
+        bind(KickComponent.class).in(Singleton.class);
+        bind(ClaimComponent.class).in(Singleton.class);
+        bind(ClaimToggleComponent.class).in(Singleton.class);
+        bind(UnclaimComponent.class).in(Singleton.class);
+        bind(UnclaimToggleComponent.class).in(Singleton.class);
+        bind(InviteComponent.class).in(Singleton.class);
+        bind(AcceptComponent.class).in(Singleton.class);
+        bind(DeclineComponent.class).in(Singleton.class);
+        bind(InvitesComponent.class).in(Singleton.class);
+        bind(RoleComponent.class).in(Singleton.class);
+        bind(MemberComponent.class).in(Singleton.class);
+        bind(AllyComponent.class).in(Singleton.class);
+        bind(EnemyComponent.class).in(Singleton.class);
+        bind(NeutralComponent.class).in(Singleton.class);
     }
 
     @Provides
