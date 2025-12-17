@@ -42,11 +42,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.Chunk;
-
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -57,7 +54,6 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 public class GuildsPlugin extends JavaPlugin {
     private Injector injector;
-    private GuildManager guildManager;
     private GuildService guildService;
     private RelationshipService relationshipService;
     private SubregionService subregionService;
@@ -73,7 +69,6 @@ public class GuildsPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         this.injector = Guice.createInjector(new GuildsModule(this));
-        this.guildManager = injector.getInstance(GuildManager.class);
 
         // Initialize services
         this.guildService = injector.getInstance(GuildService.class);
@@ -532,6 +527,9 @@ public class GuildsPlugin extends JavaPlugin {
                     )
                 )
             )
+            .then(Commands.literal("cancel")
+                .executes(context -> handleRegionCommand(context, new String[]{"region", "cancel"}))
+            )
             .then(Commands.literal("delete")
                 .then(Commands.argument("name", StringArgumentType.word())
                     .suggests(this::suggestRegionNames)
@@ -811,7 +809,6 @@ public class GuildsPlugin extends JavaPlugin {
 
         sender.sendMessage("§6=== Guild Info ===");
         sender.sendMessage("§7Name: §f" + guild.getName());
-        sender.sendMessage("§7ID: §f" + guild.getId());
         sender.sendMessage("§7Description: §f" + (guild.getDescription() == null || guild.getDescription().isEmpty() ? "No description" : guild.getDescription()));
         sender.sendMessage("§7Members: §f" + guild.getMemberCount() + "/" + guild.getMaxMembers());
         sender.sendMessage("§7Created: §f" + new Date(guild.getCreatedAt()));
@@ -840,14 +837,14 @@ public class GuildsPlugin extends JavaPlugin {
     private int handleGuildListPage(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, int page) {
         CommandSender sender = context.getSource().getSender();
 
-        if (guildManager.getAllGuilds().isEmpty()) {
+        if (guildService.listAllGuilds().isEmpty()) {
             sender.sendMessage("§7No guilds exist yet!");
             return 1;
         }
 
         sender.sendMessage("§6=== Guild List (Page " + page + ") ===");
         int index = 0;
-        for (Guild guild : guildManager.getAllGuilds()) {
+        for (Guild guild : guildService.listAllGuilds()) {
             sender.sendMessage("§7• §f" + guild.getName() + " §8- §7" + guild.getMemberCount() + " members");
             index++;
         }
@@ -864,15 +861,18 @@ public class GuildsPlugin extends JavaPlugin {
 
         Player player = (Player) sender;
 
-        Optional<Guild> guildOpt = guildManager.getPlayerGuild(player.getUniqueId());
-        if (!guildOpt.isPresent()) {
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
             return 0;
         }
 
-        // TODO: Implement unclaim all logic
-        player.sendMessage("§aUnclaimed all chunks!");
-        return 1;
+        if (guildService.unclaimAllChunks(guild.getId(), player.getUniqueId())) {
+            player.sendMessage("§aUnclaimed all chunks!");
+            return 1;
+        }
+        player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Failed to unclaim chunks"));
+        return 0;
     }
 
     private int handleSpawnCommand(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
@@ -1080,7 +1080,7 @@ public class GuildsPlugin extends JavaPlugin {
 
     private int handleToggleCommandNoArg(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
-        sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g toggle <explosions|fire>"));
+        sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g toggle <explosions|fire|public>"));
         return 0;
     }
 
@@ -1122,9 +1122,17 @@ public class GuildsPlugin extends JavaPlugin {
                 player.sendMessage(MessageFormatter.deserialize("<green>Fire spread " + status + " in guild territory</green>"));
                 return 1;
             }
+            case "public" -> {
+                boolean newValue = !guild.isPublic();
+                guild.setPublic(newValue);
+                guildService.save(guild);
+                String status = newValue ? "<green>public</green>" : "<gold>private</gold>";
+                player.sendMessage(MessageFormatter.deserialize("<green>Guild is now " + status + "</green>"));
+                return 1;
+            }
             default -> {
                 player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Unknown setting: " + setting));
-                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Available settings: explosions, fire"));
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Available settings: explosions, fire, public"));
                 return 0;
             }
         }
@@ -1142,10 +1150,13 @@ public class GuildsPlugin extends JavaPlugin {
         Player player = (Player) sender;
 
         try {
-            Guild guild = guildManager.createGuild(name, description, player.getUniqueId());
+            Guild guild = guildService.createGuild(name, description, player.getUniqueId());
+            if (guild == null) {
+                player.sendMessage("§cGuild creation failed. Name may already exist or you may already be in a guild.");
+                return 0;
+            }
             player.sendMessage("§aGuild created successfully!");
             player.sendMessage("§7Name: §f" + guild.getName());
-            player.sendMessage("§7ID: §f" + guild.getId());
             player.sendMessage("§7Description: §f" + (guild.getDescription().isEmpty() ? "No description" : guild.getDescription()));
 
             // Auto-claim the chunk where guild was created
@@ -1177,25 +1188,28 @@ public class GuildsPlugin extends JavaPlugin {
 
         Player player = (Player) sender;
 
-        for (Guild guild : guildManager.getAllGuilds()) {
-            if (guild.getName().equalsIgnoreCase(guildName)) {
-                try {
-                    if (guildManager.joinGuild(guild.getId(), player.getUniqueId())) {
-                        player.sendMessage("§aSuccessfully joined guild: §f" + guild.getName());
-                        return 1;
-                    } else {
-                        player.sendMessage("§cGuild is full or you're already a member!");
-                        return 0;
-                    }
-                } catch (IllegalStateException e) {
-                    player.sendMessage("§cError: " + e.getMessage());
-                    return 0;
-                }
-            }
+        Guild guild = guildService.getGuildByName(guildName);
+        if (guild == null) {
+            player.sendMessage("§cGuild not found!");
+            return 0;
         }
 
-        player.sendMessage("§cGuild not found!");
-        return 0;
+        // Check if guild is private
+        if (!guild.isPublic()) {
+            player.sendMessage(MessageFormatter.format(
+                MessageFormatter.ERROR,
+                "✗ " + guild.getName() + " is private. You need an invite to join"
+            ));
+            return 0;
+        }
+
+        if (guildService.joinGuild(guild.getId(), player.getUniqueId())) {
+            player.sendMessage("§aSuccessfully joined guild: §f" + guild.getName());
+            return 1;
+        } else {
+            player.sendMessage("§cGuild is full or you're already a member!");
+            return 0;
+        }
     }
 
     private int handleLeaveGuild(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
@@ -1207,11 +1221,18 @@ public class GuildsPlugin extends JavaPlugin {
 
         Player player = (Player) sender;
 
-        if (guildManager.leaveGuild(player.getUniqueId())) {
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage("§cYou are not in a guild!");
+            return 0;
+        }
+
+        LeaveResult result = guildService.leaveGuild(guild.getId(), player.getUniqueId());
+        if (result.isSuccess()) {
             player.sendMessage("§aYou have left your guild!");
             return 1;
         } else {
-            player.sendMessage("§cYou are not in a guild!");
+            player.sendMessage("§c" + result.getReason());
             return 0;
         }
     }
@@ -1225,15 +1246,13 @@ public class GuildsPlugin extends JavaPlugin {
 
         Player player = (Player) sender;
 
-        Optional<Guild> guildOpt = guildManager.getPlayerGuild(player.getUniqueId());
-        if (!guildOpt.isPresent()) {
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
             player.sendMessage("§cYou are not in a guild!");
             return 0;
         }
 
-        Guild guild = guildOpt.get();
-
-        if (guildManager.deleteGuild(guild.getId(), player.getUniqueId())) {
+        if (guildService.deleteGuild(guild.getId(), player.getUniqueId())) {
             player.sendMessage("§aYour guild has been disbanded!");
             return 1;
         } else {
@@ -1251,13 +1270,11 @@ public class GuildsPlugin extends JavaPlugin {
 
         Player player = (Player) sender;
 
-        Optional<Guild> guildOpt = guildManager.getPlayerGuild(player.getUniqueId());
-        if (!guildOpt.isPresent()) {
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
             player.sendMessage("§cYou are not in a guild!");
             return 0;
         }
-
-        Guild guild = guildOpt.get();
 
         player.sendMessage("§6=== Guild Info ===");
         player.sendMessage("§7Name: §f" + guild.getName());
@@ -1282,7 +1299,44 @@ public class GuildsPlugin extends JavaPlugin {
         // Display relationships
         displayGuildRelationships(player, guild);
 
+        // Display region type limits
+        displayRegionTypeLimits(player, guild);
+
         return 1;
+    }
+
+    /**
+     * Displays region type limits and usage for a guild.
+     */
+    private void displayRegionTypeLimits(Player player, Guild guild) {
+        var limits = subregionService.getLimitRepository().findAll();
+        if (limits.isEmpty()) {
+            return;
+        }
+
+        player.sendMessage("§7Region Limits:");
+        for (var limit : limits) {
+            long usage = subregionService.getTypeUsage(guild.getId(), limit.typeId());
+            long max = limit.maxTotalVolume();
+            double percent = max > 0 ? (usage * 100.0) / max : 0;
+
+            String displayName = subregionService.getTypeRegistry().getType(limit.typeId())
+                    .map(t -> t.getDisplayName())
+                    .orElse(limit.typeId());
+
+            String color = percent >= 90 ? "§c" : percent >= 70 ? "§e" : "§a";
+            player.sendMessage("  §7• §6" + displayName + "§7: " + color + formatVolume(usage) + "§7/" + formatVolume(max) +
+                    " §8(" + String.format("%.0f", percent) + "%)");
+        }
+    }
+
+    private String formatVolume(long number) {
+        if (number >= 1_000_000) {
+            return String.format("%.1fM", number / 1_000_000.0);
+        } else if (number >= 1_000) {
+            return String.format("%.1fK", number / 1_000.0);
+        }
+        return String.valueOf(number);
     }
 
     /**
@@ -1322,13 +1376,13 @@ public class GuildsPlugin extends JavaPlugin {
     private int handleGuildList(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
 
-        if (guildManager.getAllGuilds().isEmpty()) {
+        if (guildService.listAllGuilds().isEmpty()) {
             sender.sendMessage("§7No guilds exist yet!");
             return 1;
         }
 
         sender.sendMessage("§6=== Guild List ===");
-        for (Guild guild : guildManager.getAllGuilds()) {
+        for (Guild guild : guildService.listAllGuilds()) {
             sender.sendMessage("§7• §f" + guild.getName() + " §8- §7" + guild.getMemberCount() + " members");
         }
 
@@ -1345,19 +1399,19 @@ public class GuildsPlugin extends JavaPlugin {
         Player player = (Player) sender;
 
         // Pre-check: guild membership
-        Optional<Guild> guildOpt = guildManager.getPlayerGuild(player.getUniqueId());
-        if (!guildOpt.isPresent()) {
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
             return 0;
         }
 
         // Attempt claim
-        ClaimResult result = guildManager.claimChunk(player);
+        ChunkKey chunkKey = ChunkKey.from(player.getLocation().getChunk());
+        ClaimResult result = guildService.claimChunk(guild.getId(), player.getUniqueId(), chunkKey);
         if (result.isSuccess()) {
-            Chunk chunk = player.getLocation().getChunk();
             player.sendMessage(MessageFormatter.format(
                 "<green>Claimed chunk at <gold>%s, %s</gold></green>",
-                chunk.getX(), chunk.getZ()));
+                chunkKey.x(), chunkKey.z()));
             return 1;
         } else {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, result.getReason()));
@@ -1445,18 +1499,18 @@ public class GuildsPlugin extends JavaPlugin {
         Player player = (Player) sender;
 
         // Pre-check: guild membership
-        Optional<Guild> guildOpt = guildManager.getPlayerGuild(player.getUniqueId());
-        if (!guildOpt.isPresent()) {
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
             return 0;
         }
 
         // Attempt unclaim
-        if (guildManager.unclaimChunk(player)) {
-            Chunk chunk = player.getLocation().getChunk();
+        ChunkKey chunkKey = ChunkKey.from(player.getLocation().getChunk());
+        if (guildService.unclaimChunk(guild.getId(), player.getUniqueId(), chunkKey)) {
             player.sendMessage(MessageFormatter.format(
                 "<green>Unclaimed chunk at <gold>%s, %s</gold></green>",
-                chunk.getX(), chunk.getZ()));
+                chunkKey.x(), chunkKey.z()));
             return 1;
         } else {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
@@ -1479,7 +1533,19 @@ public class GuildsPlugin extends JavaPlugin {
             return 0;
         }
 
-        return guildManager.kickMember(player.getUniqueId(), target.getUniqueId()) ? 1 : 0;
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage("§cYou are not in a guild!");
+            return 0;
+        }
+
+        if (guildService.kickMember(guild.getId(), player.getUniqueId(), target.getUniqueId())) {
+            player.sendMessage("§aPlayer kicked from guild!");
+            return 1;
+        } else {
+            player.sendMessage("§cFailed to kick player!");
+            return 0;
+        }
     }
 
     private int handleInviteCommand(com.mojang.brigadier.context.CommandContext<CommandSourceStack> context, String playerName) {

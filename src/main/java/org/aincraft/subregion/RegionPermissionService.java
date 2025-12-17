@@ -221,7 +221,12 @@ public class RegionPermissionService {
             return true;
         }
 
-        // 3. Check player-specific permissions (applies to anyone)
+        // 3. ADMIN permission grants all permissions
+        if (guildService.hasPermission(region.getGuildId(), playerId, GuildPermission.ADMIN)) {
+            return true;
+        }
+
+        // 4. Check player-specific permissions (applies to anyone)
         Optional<RegionPermission> playerPerm = permissionRepository.findByRegionAndSubject(
             region.getId(), playerId.toString(), SubjectType.PLAYER
         );

@@ -21,6 +21,7 @@ public class SelectionManager {
     private static final long SELECTION_EXPIRY_MS = SELECTION_EXPIRY_MINUTES * 60 * 1000;
 
     private final Map<UUID, PlayerSelection> selections = new ConcurrentHashMap<>();
+    private final Map<UUID, PendingCreation> pendingCreations = new ConcurrentHashMap<>();
     private final SelectionVisualizer visualizer;
 
     @Inject
@@ -95,15 +96,45 @@ public class SelectionManager {
     }
 
     /**
+     * Starts a pending region creation for a player.
+     */
+    public void startPendingCreation(UUID playerId, String name, String type, String guildId) {
+        pendingCreations.put(playerId, new PendingCreation(name, type, guildId, System.currentTimeMillis()));
+        clearSelection(playerId);
+    }
+
+    /**
+     * Gets a player's pending creation.
+     */
+    public Optional<PendingCreation> getPendingCreation(UUID playerId) {
+        return Optional.ofNullable(pendingCreations.get(playerId));
+    }
+
+    /**
+     * Checks if a player has a pending creation.
+     */
+    public boolean hasPendingCreation(UUID playerId) {
+        return pendingCreations.containsKey(playerId);
+    }
+
+    /**
+     * Clears a player's pending creation.
+     */
+    public void clearPendingCreation(UUID playerId) {
+        pendingCreations.remove(playerId);
+    }
+
+    /**
      * Clears all selections (for plugin disable).
      */
     public void clearAll() {
         selections.clear();
+        pendingCreations.clear();
         visualizer.clearAll();
     }
 
     /**
-     * Clears expired selections (older than 30 minutes).
+     * Clears expired selections and pending creations (older than 30 minutes).
      */
     public void clearExpired() {
         long threshold = System.currentTimeMillis() - SELECTION_EXPIRY_MS;
@@ -120,6 +151,7 @@ public class SelectionManager {
             }
             return false;
         });
+        pendingCreations.entrySet().removeIf(entry -> entry.getValue().createdAt() < threshold);
     }
 
     /**
@@ -138,4 +170,9 @@ public class SelectionManager {
             return pos2 != null;
         }
     }
+
+    /**
+     * Represents a pending region creation request.
+     */
+    public record PendingCreation(String name, String type, String guildId, long createdAt) {}
 }

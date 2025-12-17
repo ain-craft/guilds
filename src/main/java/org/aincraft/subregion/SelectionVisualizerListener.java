@@ -22,8 +22,9 @@ public class SelectionVisualizerListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        // Clear selection and indicators when player quits
+        // Clear selection, pending creation, and indicators when player quits
         selectionManager.clearSelection(event.getPlayer().getUniqueId());
+        selectionManager.clearPendingCreation(event.getPlayer().getUniqueId());
         visualizer.clearIndicators(event.getPlayer().getUniqueId());
     }
 }

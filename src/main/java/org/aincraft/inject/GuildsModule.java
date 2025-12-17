@@ -4,10 +4,13 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import org.aincraft.GuildManager;
 import org.aincraft.GuildService;
 import org.aincraft.GuildsPlugin;
 import org.aincraft.RelationshipService;
+import org.aincraft.service.ChunkClaimService;
+import org.aincraft.service.GuildPermissionService;
+import org.aincraft.service.GuildRoleService;
+import org.aincraft.service.GuildSpawnService;
 import org.aincraft.GuildDefaultPermissionsService;
 import org.aincraft.listeners.GuildProtectionListener;
 import org.aincraft.storage.GuildRepository;
@@ -126,9 +129,14 @@ public class GuildsModule extends AbstractModule {
 
         // Services
         bind(GuildService.class).in(Singleton.class);
-        bind(GuildManager.class).in(Singleton.class);
         bind(RelationshipService.class).in(Singleton.class);
         bind(GuildDefaultPermissionsService.class).in(Singleton.class);
+
+        // New extracted services
+        bind(ChunkClaimService.class).in(Singleton.class);
+        bind(GuildSpawnService.class).in(Singleton.class);
+        bind(GuildRoleService.class).in(Singleton.class);
+        bind(GuildPermissionService.class).in(Singleton.class);
 
         // Listeners
         bind(GuildProtectionListener.class).in(Singleton.class);

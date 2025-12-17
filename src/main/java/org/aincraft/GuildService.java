@@ -313,6 +313,12 @@ public class GuildService {
 
         // Compute effective permissions from all assigned roles
         int effectivePermissions = computeEffectivePermissions(guildId, playerId);
+
+        // ADMIN permission grants all permissions
+        if ((effectivePermissions & GuildPermission.ADMIN.getBit()) != 0) {
+            return true;
+        }
+
         return (effectivePermissions & permission.getBit()) != 0;
     }
 

@@ -51,7 +51,7 @@ public class RegionComponent implements GuildCommand {
 
     @Override
     public String getUsage() {
-        return "/g region <pos1|pos2|create|delete|list|info|types|settype|addowner|removeowner|setperm|removeperm|listperms|role|limit>";
+        return "/g region <pos1|pos2|create|cancel|delete|list|info|types|settype|addowner|removeowner|setperm|removeperm|listperms|role|limit>";
     }
 
     @Override
@@ -72,6 +72,7 @@ public class RegionComponent implements GuildCommand {
             case "pos1" -> handlePos1(player);
             case "pos2" -> handlePos2(player);
             case "create" -> handleCreate(player, args);
+            case "cancel" -> handleCancel(player);
             case "delete" -> handleDelete(player, args);
             case "list" -> handleList(player);
             case "info" -> handleInfo(player, args);
@@ -93,9 +94,10 @@ public class RegionComponent implements GuildCommand {
 
     private void showHelp(Player player) {
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Region Commands", ""));
-        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region pos1", "Set first corner at your location"));
-        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region pos2", "Set second corner at your location"));
-        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region create <name> [type]", "Create region from selection"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region create <name> [type]", "Start creating a region"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region pos1", "Set first corner (during creation)"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region pos2", "Set second corner (during creation)"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region cancel", "Cancel region creation"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region delete <name>", "Delete a region"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region list", "List your guild's regions"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region info <name>", "Show region details"));
@@ -121,6 +123,13 @@ public class RegionComponent implements GuildCommand {
     }
 
     private boolean handlePos1(Player player) {
+        // Check for active pending creation
+        if (!selectionManager.hasPendingCreation(player.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
+                    "No region creation in progress. Start with /g region create <name> [type]"));
+            return true;
+        }
+
         Location loc = player.getLocation();
         selectionManager.setPos1(player.getUniqueId(), loc);
 
@@ -128,8 +137,7 @@ public class RegionComponent implements GuildCommand {
                 "<green>Position 1 set at <gold>" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + "</gold></green>"));
 
         if (selectionManager.hasCompleteSelection(player.getUniqueId())) {
-            player.sendMessage(MessageFormatter.deserialize(
-                    "<gray>Selection complete. Use <yellow>/g region create <name></yellow> to create the region.</gray>"));
+            return finalizePendingCreation(player);
         } else {
             player.sendMessage(MessageFormatter.deserialize(
                     "<gray>Now set position 2 with <yellow>/g region pos2</yellow></gray>"));
@@ -139,6 +147,13 @@ public class RegionComponent implements GuildCommand {
     }
 
     private boolean handlePos2(Player player) {
+        // Check for active pending creation
+        if (!selectionManager.hasPendingCreation(player.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
+                    "No region creation in progress. Start with /g region create <name> [type]"));
+            return true;
+        }
+
         Location loc = player.getLocation();
         selectionManager.setPos2(player.getUniqueId(), loc);
 
@@ -146,14 +161,58 @@ public class RegionComponent implements GuildCommand {
                 "<green>Position 2 set at <gold>" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + "</gold></green>"));
 
         if (selectionManager.hasCompleteSelection(player.getUniqueId())) {
-            SelectionManager.PlayerSelection sel = selectionManager.getSelection(player.getUniqueId()).get();
-            long volume = calculateVolume(sel.pos1(), sel.pos2());
-            player.sendMessage(MessageFormatter.deserialize(
-                    "<gray>Selection complete (" + volume + " blocks). Use <yellow>/g region create <name></yellow> to create the region.</gray>"));
+            return finalizePendingCreation(player);
         } else {
             player.sendMessage(MessageFormatter.deserialize(
                     "<gray>Now set position 1 with <yellow>/g region pos1</yellow></gray>"));
         }
+
+        return true;
+    }
+
+    private boolean finalizePendingCreation(Player player) {
+        SelectionManager.PendingCreation pending = selectionManager.getPendingCreation(player.getUniqueId()).orElse(null);
+        if (pending == null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "No pending region creation found"));
+            return true;
+        }
+
+        SelectionManager.PlayerSelection sel = selectionManager.getSelection(player.getUniqueId()).orElse(null);
+        if (sel == null || !sel.isComplete()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Selection incomplete"));
+            return true;
+        }
+
+        SubregionService.SubregionCreationResult result = subregionService.createSubregion(
+                pending.guildId(), player.getUniqueId(), pending.name(), sel.pos1(), sel.pos2(), pending.type());
+
+        if (result.success()) {
+            Subregion region = result.region();
+            String typeInfo = pending.type() != null
+                    ? " <yellow>[" + typeRegistry.getType(pending.type()).map(SubregionType::getDisplayName).orElse(pending.type()) + "]</yellow>"
+                    : "";
+            player.sendMessage(MessageFormatter.deserialize(
+                    "<green>Created region <gold>\"" + pending.name() + "\"</gold>" + typeInfo + " (" + region.getVolume() + " blocks)</green>"));
+        } else {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, result.errorMessage()));
+        }
+
+        // Clear both selection and pending creation
+        selectionManager.clearSelection(player.getUniqueId());
+        selectionManager.clearPendingCreation(player.getUniqueId());
+
+        return true;
+    }
+
+    private boolean handleCancel(Player player) {
+        if (!selectionManager.hasPendingCreation(player.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "No region creation in progress"));
+            return true;
+        }
+
+        selectionManager.clearSelection(player.getUniqueId());
+        selectionManager.clearPendingCreation(player.getUniqueId());
+        player.sendMessage(MessageFormatter.deserialize("<yellow>Region creation cancelled</yellow>"));
 
         return true;
     }
@@ -170,12 +229,6 @@ public class RegionComponent implements GuildCommand {
             return true;
         }
 
-        if (!selectionManager.hasCompleteSelection(player.getUniqueId())) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
-                    "You need to set both positions first. Use /g region pos1 and /g region pos2"));
-            return true;
-        }
-
         String name = args[2];
         String type = args.length >= 4 ? args[3].toLowerCase() : null;
 
@@ -185,20 +238,26 @@ public class RegionComponent implements GuildCommand {
             return true;
         }
 
-        SelectionManager.PlayerSelection sel = selectionManager.getSelection(player.getUniqueId()).get();
-
-        SubregionService.SubregionCreationResult result = subregionService.createSubregion(
-                guild.getId(), player.getUniqueId(), name, sel.pos1(), sel.pos2(), type);
-
-        if (result.success()) {
-            Subregion region = result.region();
-            String typeInfo = type != null ? " [" + typeRegistry.getType(type).map(SubregionType::getDisplayName).orElse(type) + "]" : "";
-            player.sendMessage(MessageFormatter.deserialize(
-                    "<green>Created region <gold>" + name + "</gold>" + typeInfo + " (" + region.getVolume() + " blocks)</green>"));
-            selectionManager.clearSelection(player.getUniqueId());
-        } else {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, result.errorMessage()));
+        // Validate permissions upfront
+        if (!guildService.hasPermission(guild.getId(), player.getUniqueId(), GuildPermission.MANAGE_REGIONS)) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You don't have permission to manage regions"));
+            return true;
         }
+
+        // Validate name uniqueness upfront
+        if (subregionService.getSubregionByName(guild.getId(), name).isPresent()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "A region with that name already exists"));
+            return true;
+        }
+
+        // Start the creation wizard
+        selectionManager.startPendingCreation(player.getUniqueId(), name, type, guild.getId());
+
+        String typeInfo = type != null ? " <yellow>[" + typeRegistry.getType(type).map(SubregionType::getDisplayName).orElse(type) + "]</yellow>" : "";
+        player.sendMessage(MessageFormatter.deserialize(
+                "<green>Starting region creation for <gold>\"" + name + "\"</gold>" + typeInfo + "</green>"));
+        player.sendMessage(MessageFormatter.deserialize(
+                "<gray>Set position 1 with <yellow>/g region pos1</yellow></gray>"));
 
         return true;
     }
