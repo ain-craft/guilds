@@ -1,6 +1,9 @@
 package org.aincraft;
 
 import com.google.inject.Inject;
+import org.aincraft.claim.ChunkClaimLog;
+import org.aincraft.claim.ChunkClaimLogRepository;
+import org.aincraft.config.GuildsConfig;
 import org.aincraft.storage.GuildRepository;
 import org.aincraft.storage.GuildMemberRepository;
 import org.aincraft.storage.GuildRoleRepository;
@@ -8,6 +11,7 @@ import org.aincraft.storage.MemberRoleRepository;
 import org.aincraft.storage.ChunkClaimRepository;
 import org.aincraft.storage.PlayerGuildMapping;
 import org.aincraft.storage.GuildRelationshipRepository;
+import org.aincraft.storage.InviteRepository;
 import java.util.*;
 
 /**
@@ -29,12 +33,16 @@ public class GuildService {
     private final MemberRoleRepository memberRoleRepository;
     private final ChunkClaimRepository chunkClaimRepository;
     private final GuildRelationshipRepository relationshipRepository;
+    private final ChunkClaimLogRepository claimLogRepository;
+    private final InviteRepository inviteRepository;
+    private final GuildsConfig config;
 
     @Inject
     public GuildService(GuildRepository guildRepository, PlayerGuildMapping playerGuildMapping,
                         GuildMemberRepository memberRepository, GuildRoleRepository roleRepository,
                         MemberRoleRepository memberRoleRepository, ChunkClaimRepository chunkClaimRepository,
-                        GuildRelationshipRepository relationshipRepository) {
+                        GuildRelationshipRepository relationshipRepository, ChunkClaimLogRepository claimLogRepository,
+                        InviteRepository inviteRepository, GuildsConfig config) {
         this.guildRepository = Objects.requireNonNull(guildRepository, "Guild repository cannot be null");
         this.playerGuildMapping = Objects.requireNonNull(playerGuildMapping, "Player guild mapping cannot be null");
         this.memberRepository = Objects.requireNonNull(memberRepository, "Member repository cannot be null");
@@ -42,6 +50,9 @@ public class GuildService {
         this.memberRoleRepository = Objects.requireNonNull(memberRoleRepository, "Member role repository cannot be null");
         this.chunkClaimRepository = Objects.requireNonNull(chunkClaimRepository, "Chunk claim repository cannot be null");
         this.relationshipRepository = Objects.requireNonNull(relationshipRepository, "Relationship repository cannot be null");
+        this.claimLogRepository = Objects.requireNonNull(claimLogRepository, "Claim log repository cannot be null");
+        this.inviteRepository = Objects.requireNonNull(inviteRepository, "Invite repository cannot be null");
+        this.config = Objects.requireNonNull(config, "Config cannot be null");
     }
 
     /**
@@ -108,6 +119,7 @@ public class GuildService {
         roleRepository.deleteAllByGuild(guildId);
         chunkClaimRepository.unclaimAll(guildId);
         relationshipRepository.deleteAllByGuild(guildId);
+        inviteRepository.deleteByGuildId(guildId);
 
         guildRepository.delete(guildId);
         return true;
@@ -496,13 +508,24 @@ public class GuildService {
             return ClaimResult.notAdjacent();
         }
 
+        // Check if guild has reached claim limit
+        Optional<Guild> guildOpt = guildRepository.findById(guildId);
+        if (guildOpt.isPresent()) {
+            Guild guild = guildOpt.get();
+            if (guildChunks.size() >= guild.getMaxChunks()) {
+                return ClaimResult.limitExceeded(guild.getMaxChunks());
+            }
+        }
+
         boolean claimed = chunkClaimRepository.claim(chunk, guildId, playerId);
         if (!claimed) {
             return ClaimResult.failure("Failed to claim chunk");
         }
 
+        // Log the claim action
+        claimLogRepository.log(new ChunkClaimLog(guildId, chunk, playerId, ChunkClaimLog.ActionType.CLAIM));
+
         // Auto-set homeblock and spawn if this is first claim
-        Optional<Guild> guildOpt = guildRepository.findById(guildId);
         if (guildOpt.isPresent()) {
             Guild guild = guildOpt.get();
             if (!guild.hasHomeblock()) {
@@ -561,7 +584,13 @@ public class GuildService {
             }
         }
 
-        return chunkClaimRepository.unclaim(chunk, guildId);
+        boolean unclaimed = chunkClaimRepository.unclaim(chunk, guildId);
+        if (unclaimed) {
+            // Log the unclaim action
+            claimLogRepository.log(new ChunkClaimLog(guildId, chunk, playerId, ChunkClaimLog.ActionType.UNCLAIM));
+        }
+
+        return unclaimed;
     }
 
     /**
@@ -580,7 +609,16 @@ public class GuildService {
             return false;
         }
 
+        // Get chunks before unclaiming to preserve log history
+        List<ChunkKey> chunks = chunkClaimRepository.getGuildChunks(guildId);
+
         chunkClaimRepository.unclaimAll(guildId);
+
+        // Log each unclaim action
+        for (ChunkKey chunk : chunks) {
+            claimLogRepository.log(new ChunkClaimLog(guildId, chunk, playerId, ChunkClaimLog.ActionType.UNCLAIM));
+        }
+
         return true;
     }
 
@@ -607,6 +645,18 @@ public class GuildService {
     public List<ChunkKey> getGuildChunks(String guildId) {
         Objects.requireNonNull(guildId, "Guild ID cannot be null");
         return chunkClaimRepository.getGuildChunks(guildId);
+    }
+
+    /**
+     * Gets claim log entries for a guild.
+     *
+     * @param guildId the guild ID
+     * @param limit maximum number of entries to return
+     * @return list of claim log entries, newest first
+     */
+    public List<ChunkClaimLog> getGuildClaimLogs(String guildId, int limit) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+        return claimLogRepository.findByGuildId(guildId, limit);
     }
 
     /**
@@ -1114,6 +1164,56 @@ public class GuildService {
             }
         }
         return false;
+    }
+
+    /**
+     * Checks if a chunk violates the buffer distance from other guilds' territories.
+     * Uses Manhattan distance: |dx| + |dz|.
+     *
+     * @param chunk the chunk to check
+     * @param guildId the guild attempting to claim (excluded from check)
+     * @return ClaimResult.success() if valid, or ClaimResult.tooCloseToGuild() if too close
+     */
+    private ClaimResult checkBufferDistance(ChunkKey chunk, String guildId) {
+        int bufferDistance = config.getClaimBufferDistance();
+
+        // If buffer is 0, no restriction
+        if (bufferDistance == 0) {
+            return ClaimResult.success();
+        }
+
+        // Get all guilds
+        List<Guild> allGuilds = guildRepository.findAll();
+
+        // Check distance to each other guild's chunks
+        for (Guild otherGuild : allGuilds) {
+            // Skip own guild
+            if (otherGuild.getId().equals(guildId)) {
+                continue;
+            }
+
+            // Get chunks for this guild
+            List<ChunkKey> otherChunks = chunkClaimRepository.getGuildChunks(otherGuild.getId());
+
+            // Check Manhattan distance to each chunk
+            for (ChunkKey otherChunk : otherChunks) {
+                // Only check chunks in same world
+                if (!chunk.world().equals(otherChunk.world())) {
+                    continue;
+                }
+
+                int dx = Math.abs(chunk.x() - otherChunk.x());
+                int dz = Math.abs(chunk.z() - otherChunk.z());
+                int manhattanDistance = dx + dz;
+
+                // If within buffer distance, reject claim
+                if (manhattanDistance < bufferDistance) {
+                    return ClaimResult.tooCloseToGuild(otherGuild.getName(), bufferDistance, manhattanDistance);
+                }
+            }
+        }
+
+        return ClaimResult.success();
     }
 
     /**

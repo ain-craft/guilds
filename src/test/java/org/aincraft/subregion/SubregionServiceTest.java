@@ -36,6 +36,7 @@ class SubregionServiceTest {
     @Mock private GuildService guildService;
     @Mock private SubregionTypeRegistry typeRegistry;
     @Mock private RegionPermissionService regionPermissionService;
+    @Mock private RegionTypeLimitRepository limitRepository;
     @Mock private World world;
 
     private SubregionService subregionService;
@@ -45,7 +46,7 @@ class SubregionServiceTest {
 
     @BeforeEach
     void setUp() {
-        subregionService = new SubregionService(subregionRepository, guildService, typeRegistry, regionPermissionService);
+        subregionService = new SubregionService(subregionRepository, guildService, typeRegistry, regionPermissionService, limitRepository);
         playerId = UUID.randomUUID();
         ownerId = UUID.randomUUID();
         guildId = "guild-123";
@@ -203,6 +204,55 @@ class SubregionServiceTest {
 
             assertThat(result.success()).isFalse();
             assertThat(result.errorMessage()).contains("Unknown region type");
+        }
+
+        @Test
+        @DisplayName("should fail when type volume limit exceeded")
+        void shouldFailWhenTypeVolumeLimitExceeded() {
+            Location pos1 = createLocation(0, 64, 0);
+            Location pos2 = createLocation(10, 70, 10); // 11 * 7 * 11 = 847 blocks
+
+            when(guildService.hasPermission(guildId, playerId, GuildPermission.MANAGE_REGIONS))
+                    .thenReturn(true);
+            when(typeRegistry.isRegistered("farm")).thenReturn(true);
+            when(limitRepository.findByTypeId("farm"))
+                    .thenReturn(Optional.of(new RegionTypeLimit("farm", 500)));
+            when(subregionRepository.getTotalVolumeByGuildAndType(guildId, "farm"))
+                    .thenReturn(100L); // 100 existing + 847 new = 947 > 500
+
+            SubregionService.SubregionCreationResult result = subregionService.createSubregion(
+                    guildId, playerId, "TestFarm", pos1, pos2, "farm");
+
+            assertThat(result.success()).isFalse();
+            assertThat(result.errorMessage()).contains("Exceeds").contains("limit");
+        }
+
+        @Test
+        @DisplayName("should succeed when type volume within limit")
+        void shouldSucceedWhenTypeVolumeWithinLimit() {
+            Location pos1 = createLocation(0, 64, 0);
+            Location pos2 = createLocation(4, 66, 4); // 5 * 3 * 5 = 75 blocks
+
+            when(guildService.hasPermission(guildId, playerId, GuildPermission.MANAGE_REGIONS))
+                    .thenReturn(true);
+            when(typeRegistry.isRegistered("farm")).thenReturn(true);
+            when(limitRepository.findByTypeId("farm"))
+                    .thenReturn(Optional.of(new RegionTypeLimit("farm", 500)));
+            when(subregionRepository.getTotalVolumeByGuildAndType(guildId, "farm"))
+                    .thenReturn(100L); // 100 existing + 75 new = 175 <= 500
+            when(subregionRepository.findByGuildAndName(guildId, "TestFarm"))
+                    .thenReturn(Optional.empty());
+
+            // Mock chunk ownership
+            Guild guild = mock(Guild.class);
+            when(guild.getId()).thenReturn(guildId);
+            when(guildService.getChunkOwner(any(ChunkKey.class))).thenReturn(guild);
+
+            SubregionService.SubregionCreationResult result = subregionService.createSubregion(
+                    guildId, playerId, "TestFarm", pos1, pos2, "farm");
+
+            assertThat(result.success()).isTrue();
+            verify(subregionRepository).save(any(Subregion.class));
         }
     }
 

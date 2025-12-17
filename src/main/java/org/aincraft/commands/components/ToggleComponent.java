@@ -30,7 +30,7 @@ public class ToggleComponent implements GuildCommand {
 
     @Override
     public String getUsage() {
-        return "/g toggle <explosions|fire>";
+        return "/g toggle <explosions|fire|public>";
     }
 
     @Override
@@ -65,9 +65,10 @@ public class ToggleComponent implements GuildCommand {
         return switch (setting) {
             case "explosions", "explosion" -> toggleExplosions(player, guild);
             case "fire" -> toggleFire(player, guild);
+            case "public" -> togglePublic(player, guild);
             default -> {
                 player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Unknown setting: " + setting));
-                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Available settings: explosions, fire"));
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Available settings: explosions, fire, public"));
                 yield true;
             }
         };
@@ -92,6 +93,17 @@ public class ToggleComponent implements GuildCommand {
         String status = newValue ? "<green>enabled</green>" : "<red>disabled</red>";
         player.sendMessage(MessageFormatter.deserialize(
                 "<green>Fire spread " + status + " in guild territory</green>"));
+        return true;
+    }
+
+    private boolean togglePublic(Player player, Guild guild) {
+        boolean newValue = !guild.isPublic();
+        guild.setPublic(newValue);
+        guildService.save(guild);
+
+        String status = newValue ? "<green>public</green>" : "<gold>private</gold>";
+        player.sendMessage(MessageFormatter.deserialize(
+                "<green>Guild is now " + status + "</green>"));
         return true;
     }
 }

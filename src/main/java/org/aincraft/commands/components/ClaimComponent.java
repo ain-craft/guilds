@@ -3,6 +3,7 @@ package org.aincraft.commands.components;
 import org.aincraft.ChunkKey;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
+import org.aincraft.claim.AutoClaimManager;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
 import org.bukkit.command.CommandSender;
@@ -10,12 +11,15 @@ import org.bukkit.entity.Player;
 
 /**
  * Component for claiming the chunk the player is standing in.
+ * Supports subcommand "toggle" for auto-claim functionality.
  */
 public class ClaimComponent implements GuildCommand {
     private final GuildService guildService;
+    private final ClaimToggleComponent toggleComponent;
 
-    public ClaimComponent(GuildService guildService) {
+    public ClaimComponent(GuildService guildService, AutoClaimManager autoClaimManager) {
         this.guildService = guildService;
+        this.toggleComponent = new ClaimToggleComponent(guildService, autoClaimManager);
     }
 
     @Override
@@ -35,6 +39,12 @@ public class ClaimComponent implements GuildCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        // Check for toggle subcommand
+        if (args.length >= 2 && args[1].equalsIgnoreCase("toggle")) {
+            return toggleComponent.execute(sender, args);
+        }
+
+        // Standard claim behavior
         if (!(sender instanceof Player player)) {
             sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Only players can use this command"));
             return true;

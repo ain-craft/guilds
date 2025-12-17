@@ -114,6 +114,9 @@ public class InfoComponent implements GuildCommand {
             .build();
         player.sendMessage(createdLine);
 
+        // Display toggles
+        displayToggles(player, guild);
+
         // Display relationships
         displayRelationships(player, guild);
     }
@@ -130,20 +133,19 @@ public class InfoComponent implements GuildCommand {
 
         // Build hover tooltip
         Component tooltip = Component.text()
-            .append(Component.text("Player: ").color(NamedTextColor.YELLOW))
-            .append(Component.text(playerName).color(NamedTextColor.WHITE))
+            .append(Component.text("Player: ", NamedTextColor.YELLOW))
+            .append(Component.text(playerName, NamedTextColor.WHITE))
             .append(Component.newline())
-            .append(Component.text("UUID: ").color(NamedTextColor.YELLOW))
-            .append(Component.text(playerId.toString()).color(NamedTextColor.GRAY))
+            .append(Component.text("UUID: ", NamedTextColor.YELLOW))
+            .append(Component.text(playerId.toString(), NamedTextColor.GRAY))
             .append(Component.newline())
-            .append(Component.text("Status: ").color(NamedTextColor.YELLOW))
-            .append(Component.text(offlinePlayer.isOnline() ? "Online" : "Offline")
-                .color(offlinePlayer.isOnline() ? NamedTextColor.GREEN : NamedTextColor.RED))
+            .append(Component.text("Status: ", NamedTextColor.YELLOW))
+            .append(Component.text(offlinePlayer.isOnline() ? "Online" : "Offline",
+                offlinePlayer.isOnline() ? NamedTextColor.GREEN : NamedTextColor.RED))
             .build();
 
-        return Component.text(playerName)
-            .color(NamedTextColor.WHITE)
-            .hoverEvent(HoverEvent.showText(tooltip));
+        return Component.text(playerName, NamedTextColor.WHITE)
+            .hoverEvent(tooltip);
     }
 
     /**
@@ -159,16 +161,36 @@ public class InfoComponent implements GuildCommand {
 
         // Build hover tooltip
         Component tooltip = Component.text()
-            .append(Component.text("Created: ").color(NamedTextColor.YELLOW))
-            .append(Component.text(fullDateTime).color(NamedTextColor.WHITE))
+            .append(Component.text("Created: ", NamedTextColor.YELLOW))
+            .append(Component.text(fullDateTime, NamedTextColor.WHITE))
             .append(Component.newline())
-            .append(Component.text("Days ago: ").color(NamedTextColor.YELLOW))
-            .append(Component.text(String.valueOf(daysAgo)).color(NamedTextColor.GRAY))
+            .append(Component.text("Days ago: ", NamedTextColor.YELLOW))
+            .append(Component.text(String.valueOf(daysAgo), NamedTextColor.GRAY))
             .build();
 
-        return Component.text(dateOnly)
-            .color(NamedTextColor.WHITE)
-            .hoverEvent(HoverEvent.showText(tooltip));
+        return Component.text(dateOnly, NamedTextColor.WHITE)
+            .hoverEvent(tooltip);
+    }
+
+    /**
+     * Displays guild toggle settings and chunk information.
+     *
+     * @param player the player to send the info to
+     * @param guild the guild to display toggles for
+     */
+    private void displayToggles(Player player, Guild guild) {
+        String explosions = guild.isExplosionsAllowed() ? "<green>Enabled</green>" : "<red>Disabled</red>";
+        String fire = guild.isFireAllowed() ? "<green>Enabled</green>" : "<red>Disabled</red>";
+        String isPublic = guild.isPublic() ? "<green>Public</green>" : "<red>Private</red>";
+
+        player.sendMessage(MessageFormatter.deserialize("<yellow>Explosions<reset>: " + explosions));
+        player.sendMessage(MessageFormatter.deserialize("<yellow>Fire Spread<reset>: " + fire));
+        player.sendMessage(MessageFormatter.deserialize("<yellow>Access<reset>: " + isPublic));
+
+        int claimedChunks = guildService.getGuildChunkCount(guild.getId());
+        int maxChunks = guild.getMaxChunks();
+        player.sendMessage(MessageFormatter.deserialize("<yellow>Chunks<reset>: <white>" +
+            claimedChunks + "<gray>/<white>" + maxChunks));
     }
 
     /**

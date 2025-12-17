@@ -18,7 +18,7 @@ import java.util.UUID;
 
 /**
  * Command component for managing subregions.
- * Handles: pos1, pos2, create, delete, list, info, addowner, removeowner, types, settype, setperm, removeperm, listperms, role
+ * Handles: pos1, pos2, create, delete, list, info, addowner, removeowner, types, settype, setperm, removeperm, listperms, role, limit
  */
 public class RegionComponent implements GuildCommand {
     private final GuildService guildService;
@@ -26,15 +26,17 @@ public class RegionComponent implements GuildCommand {
     private final SelectionManager selectionManager;
     private final SubregionTypeRegistry typeRegistry;
     private final RegionPermissionService regionPermissionService;
+    private final RegionTypeLimitRepository limitRepository;
 
     public RegionComponent(GuildService guildService, SubregionService subregionService,
                            SelectionManager selectionManager, SubregionTypeRegistry typeRegistry,
-                           RegionPermissionService regionPermissionService) {
+                           RegionPermissionService regionPermissionService, RegionTypeLimitRepository limitRepository) {
         this.guildService = guildService;
         this.subregionService = subregionService;
         this.selectionManager = selectionManager;
         this.typeRegistry = typeRegistry;
         this.regionPermissionService = regionPermissionService;
+        this.limitRepository = limitRepository;
     }
 
     @Override
@@ -49,7 +51,7 @@ public class RegionComponent implements GuildCommand {
 
     @Override
     public String getUsage() {
-        return "/g region <pos1|pos2|create|delete|list|info|types|settype|addowner|removeowner|setperm|removeperm|listperms|role>";
+        return "/g region <pos1|pos2|create|delete|list|info|types|settype|addowner|removeowner|setperm|removeperm|listperms|role|limit>";
     }
 
     @Override
@@ -81,6 +83,7 @@ public class RegionComponent implements GuildCommand {
             case "removeperm" -> handleRemovePerm(player, args);
             case "listperms" -> handleListPerms(player, args);
             case "role" -> handleRole(player, args);
+            case "limit" -> handleLimit(player, args);
             default -> {
                 showHelp(player);
                 yield true;
@@ -111,6 +114,10 @@ public class RegionComponent implements GuildCommand {
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region role assign <region> <role> <player>", "Assign player to role"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region role unassign <region> <role> <player>", "Unassign player from role"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region role members <region> <role>", "List role members"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region limit", "List all type volume limits"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region limit <type>", "Show limit and usage for a type"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region limit <type> <volume>", "Set volume limit (op only)"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g region limit <type> remove", "Remove limit (op only)"));
     }
 
     private boolean handlePos1(Player player) {
@@ -871,6 +878,123 @@ public class RegionComponent implements GuildCommand {
         }
 
         return true;
+    }
+
+    private boolean handleLimit(Player player, String[] args) {
+        // /g region limit - list all limits
+        // /g region limit <type> - show limit + usage for type
+        // /g region limit <type> <volume> - set limit (op only)
+        // /g region limit <type> remove - remove limit (op only)
+
+        if (args.length == 2) {
+            // List all limits
+            List<RegionTypeLimit> limits = limitRepository.findAll();
+            if (limits.isEmpty()) {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.WARNING, "No type volume limits configured"));
+                return true;
+            }
+
+            player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Region Type Limits", " (" + limits.size() + ")"));
+            for (RegionTypeLimit limit : limits) {
+                String displayName = typeRegistry.getType(limit.typeId())
+                        .map(SubregionType::getDisplayName)
+                        .orElse(limit.typeId());
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<gray>• <gold>" + limit.typeId() + "</gold> (" + displayName + "): <yellow>" +
+                        formatNumber(limit.maxTotalVolume()) + "</yellow> blocks max</gray>"));
+            }
+            return true;
+        }
+
+        String typeId = args[2].toLowerCase();
+
+        // Validate type exists
+        if (!typeRegistry.isRegistered(typeId)) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Unknown region type: " + typeId + ". Use /g region types to see available types."));
+            return true;
+        }
+
+        if (args.length == 3) {
+            // Show limit + usage for specific type
+            Optional<RegionTypeLimit> limitOpt = limitRepository.findByTypeId(typeId);
+            String displayName = typeRegistry.getType(typeId)
+                    .map(SubregionType::getDisplayName)
+                    .orElse(typeId);
+
+            player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Type Limit: " + displayName, ""));
+
+            if (limitOpt.isEmpty()) {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Limit", "No limit configured"));
+            } else {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Max Volume", formatNumber(limitOpt.get().maxTotalVolume()) + " blocks"));
+            }
+
+            // Show usage for current player's guild
+            Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+            if (guild != null) {
+                long usage = subregionService.getTypeUsage(guild.getId(), typeId);
+                if (limitOpt.isPresent()) {
+                    long max = limitOpt.get().maxTotalVolume();
+                    double percent = (usage * 100.0) / max;
+                    player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Your Guild Usage",
+                            formatNumber(usage) + "/" + formatNumber(max) + " (" + String.format("%.1f", percent) + "%)"));
+                } else {
+                    player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Your Guild Usage", formatNumber(usage) + " blocks"));
+                }
+            }
+
+            return true;
+        }
+
+        // Set or remove limit (op only)
+        if (!player.isOp()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Only operators can modify type limits"));
+            return true;
+        }
+
+        String action = args[3].toLowerCase();
+
+        if (action.equals("remove")) {
+            limitRepository.delete(typeId);
+            player.sendMessage(MessageFormatter.deserialize(
+                    "<green>Removed volume limit for type <gold>" + typeId + "</gold></green>"));
+            return true;
+        }
+
+        // Try to parse as volume
+        long volume;
+        try {
+            volume = Long.parseLong(action);
+        } catch (NumberFormatException e) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid volume. Use a number or 'remove'."));
+            return true;
+        }
+
+        if (volume <= 0) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Volume must be positive"));
+            return true;
+        }
+
+        RegionTypeLimit limit = new RegionTypeLimit(typeId, volume);
+        limitRepository.save(limit);
+
+        String displayName = typeRegistry.getType(typeId)
+                .map(SubregionType::getDisplayName)
+                .orElse(typeId);
+        player.sendMessage(MessageFormatter.deserialize(
+                "<green>Set volume limit for <gold>" + displayName + "</gold> to <yellow>" +
+                formatNumber(volume) + "</yellow> blocks</green>"));
+
+        return true;
+    }
+
+    private String formatNumber(long number) {
+        if (number >= 1_000_000) {
+            return String.format("%.1fM", number / 1_000_000.0);
+        } else if (number >= 1_000) {
+            return String.format("%.1fK", number / 1_000.0);
+        }
+        return String.valueOf(number);
     }
 
     private long calculateVolume(Location pos1, Location pos2) {

@@ -30,6 +30,8 @@ class GuildServiceTest {
     @Mock private MemberRoleRepository memberRoleRepository;
     @Mock private ChunkClaimRepository chunkClaimRepository;
     @Mock private GuildRelationshipRepository relationshipRepository;
+    @Mock private org.aincraft.claim.ChunkClaimLogRepository chunkClaimLogRepository;
+    @Mock private InviteRepository inviteRepository;
 
     private GuildService guildService;
     private UUID ownerId;
@@ -44,7 +46,9 @@ class GuildServiceTest {
                 roleRepository,
                 memberRoleRepository,
                 chunkClaimRepository,
-                relationshipRepository
+                relationshipRepository,
+                chunkClaimLogRepository,
+                inviteRepository
         );
         ownerId = UUID.randomUUID();
         memberId = UUID.randomUUID();
@@ -415,6 +419,27 @@ class GuildServiceTest {
 
             assertThat(result.isSuccess()).isTrue();
             verify(chunkClaimRepository).claim(adjacentChunk, guild.getId(), ownerId);
+        }
+
+        @Test
+        @DisplayName("should return LIMIT_EXCEEDED when guild reaches max chunks")
+        void shouldReturnLimitExceededWhenGuildReachesMaxChunks() {
+            when(guildRepository.findById(guild.getId())).thenReturn(Optional.of(guild));
+            guild.setMaxChunks(2);
+            guild.setHomeblock(chunk);
+
+            ChunkKey chunk1 = new ChunkKey("world", 0, 0);
+            ChunkKey chunk2 = new ChunkKey("world", 1, 0);
+            ChunkKey chunk3 = new ChunkKey("world", 2, 0); // This will exceed limit
+
+            // Return 2 existing chunks (already at limit)
+            when(chunkClaimRepository.getGuildChunks(guild.getId())).thenReturn(List.of(chunk1, chunk2));
+
+            ClaimResult result = guildService.claimChunk(guild.getId(), ownerId, chunk3);
+
+            assertThat(result.getStatus()).isEqualTo(ClaimResult.Status.LIMIT_EXCEEDED);
+            assertThat(result.getReason()).contains("2");
+            verify(chunkClaimRepository, never()).claim(any(), anyString(), any());
         }
 
     }

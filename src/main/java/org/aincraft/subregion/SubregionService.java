@@ -19,15 +19,18 @@ public class SubregionService {
     private final GuildService guildService;
     private final SubregionTypeRegistry typeRegistry;
     private final RegionPermissionService regionPermissionService;
+    private final RegionTypeLimitRepository limitRepository;
     private long maxVolume = DEFAULT_MAX_VOLUME;
 
     @Inject
     public SubregionService(SubregionRepository subregionRepository, GuildService guildService,
-                            SubregionTypeRegistry typeRegistry, RegionPermissionService regionPermissionService) {
+                            SubregionTypeRegistry typeRegistry, RegionPermissionService regionPermissionService,
+                            RegionTypeLimitRepository limitRepository) {
         this.subregionRepository = Objects.requireNonNull(subregionRepository);
         this.guildService = Objects.requireNonNull(guildService);
         this.typeRegistry = Objects.requireNonNull(typeRegistry);
         this.regionPermissionService = Objects.requireNonNull(regionPermissionService);
+        this.limitRepository = Objects.requireNonNull(limitRepository);
     }
 
     /**
@@ -37,8 +40,22 @@ public class SubregionService {
         return typeRegistry;
     }
 
+    /**
+     * Gets the limit repository for external access.
+     */
+    public RegionTypeLimitRepository getLimitRepository() {
+        return limitRepository;
+    }
+
     public void setMaxVolume(long maxVolume) {
         this.maxVolume = maxVolume;
+    }
+
+    /**
+     * Gets the total volume used by a guild for a specific region type.
+     */
+    public long getTypeUsage(String guildId, String typeId) {
+        return subregionRepository.getTotalVolumeByGuildAndType(guildId, typeId);
     }
 
     /**
@@ -71,6 +88,23 @@ public class SubregionService {
         // Validate type if specified
         if (type != null && !typeRegistry.isRegistered(type)) {
             return SubregionCreationResult.failure("Unknown region type: " + type);
+        }
+
+        // Check type volume limit
+        if (type != null) {
+            Optional<RegionTypeLimit> limitOpt = limitRepository.findByTypeId(type);
+            if (limitOpt.isPresent()) {
+                RegionTypeLimit limit = limitOpt.get();
+                // Create temp to calculate volume
+                Subregion temp = Subregion.fromLocations(guildId, name, pos1, pos2, playerId, type);
+                long currentUsage = subregionRepository.getTotalVolumeByGuildAndType(guildId, type);
+                long newVolume = temp.getVolume();
+                if (currentUsage + newVolume > limit.maxTotalVolume()) {
+                    return SubregionCreationResult.failure(
+                            "Exceeds " + type + " type limit: " + currentUsage + "/" + limit.maxTotalVolume() +
+                            " blocks used, need " + newVolume + " more");
+                }
+            }
         }
 
         // Check same world

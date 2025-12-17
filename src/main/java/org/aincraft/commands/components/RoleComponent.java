@@ -117,7 +117,7 @@ public final class RoleComponent implements GuildCommand {
 
         // No permissions provided - open wizard GUI
         if (args.length == 3) {
-            RoleCreationGUI gui = new RoleCreationGUI(guild, player, name);
+            RoleCreationGUI gui = new RoleCreationGUI(guild, player, name, guildService);
             player.openInventory(gui.getInventory());
             return true;
         }

@@ -13,7 +13,8 @@
       "mcp__context7__get-library-docs",
       "Bash(./gradlew test:*)",
       "Bash(./gradlew compileJava:*)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(./gradlew compileTestJava:*)"
     ],
     "deny": [],
     "ask": []

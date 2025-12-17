@@ -22,6 +22,8 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -243,6 +245,68 @@ public class GuildProtectionListener implements Listener {
         if (!owner.isFireAllowed()) {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        ChunkKey pistonChunk = ChunkKey.from(event.getBlock().getChunk());
+        Guild pistonOwner = guildService.getChunkOwner(pistonChunk);
+
+        for (Block block : event.getBlocks()) {
+            // Check the destination where block will be pushed to
+            Block destination = block.getRelative(event.getDirection());
+            ChunkKey destChunk = ChunkKey.from(destination.getChunk());
+            Guild destOwner = guildService.getChunkOwner(destChunk);
+
+            // Cancel if pushing into a different claim (or into claimed from unclaimed)
+            if (!isSameOwner(pistonOwner, destOwner)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+
+        // Also check if piston head extends into different claim
+        Block pistonHead = event.getBlock().getRelative(event.getDirection());
+        ChunkKey headChunk = ChunkKey.from(pistonHead.getChunk());
+        Guild headOwner = guildService.getChunkOwner(headChunk);
+
+        if (!isSameOwner(pistonOwner, headOwner)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        if (!event.isSticky()) {
+            return; // Non-sticky pistons don't pull blocks
+        }
+
+        ChunkKey pistonChunk = ChunkKey.from(event.getBlock().getChunk());
+        Guild pistonOwner = guildService.getChunkOwner(pistonChunk);
+
+        for (Block block : event.getBlocks()) {
+            ChunkKey blockChunk = ChunkKey.from(block.getChunk());
+            Guild blockOwner = guildService.getChunkOwner(blockChunk);
+
+            // Cancel if pulling from a different claim
+            if (!isSameOwner(pistonOwner, blockOwner)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Checks if two guild owners are the same (including both being null/unclaimed).
+     */
+    private boolean isSameOwner(Guild owner1, Guild owner2) {
+        if (owner1 == null && owner2 == null) {
+            return true;
+        }
+        if (owner1 == null || owner2 == null) {
+            return false;
+        }
+        return owner1.getId().equals(owner2.getId());
     }
 
     /**

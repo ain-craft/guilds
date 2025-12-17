@@ -9,6 +9,8 @@ import java.util.UUID;
 public final class Guild {
     private static final int DEFAULT_MAX_MEMBERS = 100;
     private static final int MIN_MAX_MEMBERS = 1;
+    private static final int DEFAULT_MAX_CHUNKS = 50;
+    private static final int MIN_MAX_CHUNKS = 1;
     private static final int CHUNK_SHIFT = 4; // Block coordinates to chunk coordinates (right shift 4 = divide by 16)
 
     private final String id;
@@ -18,6 +20,7 @@ public final class Guild {
     private final List<UUID> members;
     private final long createdAt;
     private int maxMembers;
+    private int maxChunks;
     private String spawnWorld;
     private Double spawnX;
     private Double spawnY;
@@ -30,6 +33,7 @@ public final class Guild {
     private Integer homeblockChunkZ;
     private boolean allowExplosions;
     private boolean allowFire;
+    private boolean isPublic;
 
     /**
      * Creates a new Guild with the given parameters.
@@ -51,8 +55,10 @@ public final class Guild {
         this.members.add(ownerId);
         this.createdAt = System.currentTimeMillis();
         this.maxMembers = DEFAULT_MAX_MEMBERS;
+        this.maxChunks = DEFAULT_MAX_CHUNKS;
         this.allowExplosions = true;
         this.allowFire = true;
+        this.isPublic = false;
     }
 
     /**
@@ -77,9 +83,11 @@ public final class Guild {
         this.members = new ArrayList<>();
         this.createdAt = createdAt;
         this.maxMembers = maxMembers;
+        this.maxChunks = DEFAULT_MAX_CHUNKS;
         this.color = color;
         this.allowExplosions = true;
         this.allowFire = true;
+        this.isPublic = false;
     }
 
     /**
@@ -331,6 +339,28 @@ public final class Guild {
      */
     public int getMaxMembers() {
         return maxMembers;
+    }
+
+    /**
+     * Sets the maximum number of chunks allowed for this guild.
+     *
+     * @param maxChunks the new maximum chunk count (must be at least 1)
+     * @throws IllegalArgumentException if maxChunks is less than 1
+     */
+    public void setMaxChunks(int maxChunks) {
+        if (maxChunks < MIN_MAX_CHUNKS) {
+            throw new IllegalArgumentException("Max chunks must be at least " + MIN_MAX_CHUNKS);
+        }
+        this.maxChunks = maxChunks;
+    }
+
+    /**
+     * Gets the maximum number of chunks allowed for this guild.
+     *
+     * @return the maximum chunk count
+     */
+    public int getMaxChunks() {
+        return maxChunks;
     }
 
     /**
@@ -649,6 +679,25 @@ public final class Guild {
      */
     public void setFireAllowed(boolean allowFire) {
         this.allowFire = allowFire;
+    }
+
+    /**
+     * Checks if this guild is public (allows direct joining without invite).
+     *
+     * @return true if guild is public, false if private
+     */
+    public boolean isPublic() {
+        return isPublic;
+    }
+
+    /**
+     * Sets whether this guild is public or private.
+     * Public guilds allow direct joining, private guilds require invites.
+     *
+     * @param isPublic true for public, false for private
+     */
+    public void setPublic(boolean isPublic) {
+        this.isPublic = isPublic;
     }
 
     /**

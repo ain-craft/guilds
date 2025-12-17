@@ -57,6 +57,15 @@ public class JoinComponent implements GuildCommand {
             return true;
         }
 
+        // Check if guild is private
+        if (!guild.isPublic()) {
+            player.sendMessage(MessageFormatter.format(
+                MessageFormatter.ERROR,
+                "✗ " + guild.getName() + " is private. You need an invite to join"
+            ));
+            return true;
+        }
+
         if (guildService.joinGuild(guild.getId(), player.getUniqueId())) {
             player.sendMessage(MessageFormatter.deserialize("<green>✓ You joined '<gold>" + guild.getName() + "</gold>'!</green>"));
             return true;

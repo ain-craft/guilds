@@ -48,6 +48,7 @@ class JoinComponentTest {
     @DisplayName("should join guild successfully")
     void shouldJoinGuildSuccessfully() {
         Guild guild = new Guild("TestGuild", null, UUID.randomUUID());
+        guild.setPublic(true);  // Make guild public
         when(player.hasPermission("guilds.join")).thenReturn(true);
         when(guildService.getGuildByName("TestGuild")).thenReturn(guild);
         when(guildService.joinGuild(guild.getId(), playerId)).thenReturn(true);

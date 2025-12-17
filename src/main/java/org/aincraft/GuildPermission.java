@@ -46,9 +46,9 @@ public enum GuildPermission {
 
     /**
      * Returns the default permission bitfield for new members.
-     * Includes BUILD, DESTROY, and INTERACT.
+     * No permissions by default.
      */
     public static int defaultPermissions() {
-        return BUILD.bit | DESTROY.bit | INTERACT.bit;
+        return 0;
     }
 }

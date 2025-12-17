@@ -308,6 +308,32 @@ public class SQLiteSubregionRepository implements SubregionRepository {
         return 0;
     }
 
+    @Override
+    public long getTotalVolumeByGuildAndType(String guildId, String typeId) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+
+        String selectSQL = """
+            SELECT SUM((max_x - min_x + 1) * (max_y - min_y + 1) * (max_z - min_z + 1)) as total_volume
+            FROM subregions
+            WHERE guild_id = ? AND type = ?
+            """;
+
+        try (Connection conn = DriverManager.getConnection(connectionString);
+             PreparedStatement pstmt = conn.prepareStatement(selectSQL)) {
+            pstmt.setString(1, guildId);
+            pstmt.setString(2, typeId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getLong("total_volume");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to calculate total volume by type", e);
+        }
+
+        return 0;
+    }
+
     private Subregion mapResultSet(ResultSet rs) throws SQLException {
         return new Subregion(
                 rs.getString("id"),

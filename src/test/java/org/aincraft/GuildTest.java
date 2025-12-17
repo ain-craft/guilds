@@ -275,6 +275,31 @@ class GuildTest {
     }
 
     @Nested
+    @DisplayName("Max Chunks")
+    class MaxChunks {
+
+        @Test
+        @DisplayName("should set default max chunks to 50")
+        void shouldSetDefaultMaxChunks() {
+            assertThat(guild.getMaxChunks()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("should update max chunks")
+        void shouldUpdateMaxChunks() {
+            guild.setMaxChunks(100);
+            assertThat(guild.getMaxChunks()).isEqualTo(100);
+        }
+
+        @Test
+        @DisplayName("should throw on max chunks less than 1")
+        void shouldThrowOnMaxChunksLessThanOne() {
+            assertThatThrownBy(() -> guild.setMaxChunks(0))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("Equality")
     class Equality {
 

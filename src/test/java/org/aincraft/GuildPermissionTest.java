@@ -52,13 +52,8 @@ class GuildPermissionTest {
     void shouldHaveCorrectDefaultPermissions() {
         int defaults = GuildPermission.defaultPermissions();
 
-        assertThat(defaults & GuildPermission.BUILD.getBit()).isPositive();
-        assertThat(defaults & GuildPermission.DESTROY.getBit()).isPositive();
-        assertThat(defaults & GuildPermission.INTERACT.getBit()).isPositive();
-
-        // These should NOT be in defaults
-        assertThat(defaults & GuildPermission.MANAGE_ROLES.getBit()).isZero();
-        assertThat(defaults & GuildPermission.CLAIM.getBit()).isZero();
+        // Default permissions should be zero (no permissions)
+        assertThat(defaults).isZero();
     }
 
     @Test

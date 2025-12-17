@@ -42,7 +42,6 @@ public class VaultComponent {
         return switch (subCommand) {
             case "open" -> handleOpen(player);
             case "info" -> handleInfo(player);
-            case "log" -> handleLog(player, args);
             case "destroy" -> handleDestroy(player, args);
             default -> {
                 showHelp(player);
@@ -55,8 +54,8 @@ public class VaultComponent {
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Vault Commands", ""));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g vault", "Open the guild vault"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g vault info", "Show vault information"));
-        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g vault log [page]", "View recent transactions"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g vault destroy confirm", "Destroy the vault (owner only)"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g log vault [page]", "View vault transaction history"));
     }
 
     private boolean handleOpen(Player player) {
@@ -113,58 +112,6 @@ public class VaultComponent {
         }
         player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Used Slots",
                 itemCount + "/" + Vault.STORAGE_SIZE));
-
-        return true;
-    }
-
-    private boolean handleLog(Player player, String[] args) {
-        Optional<Vault> vaultOpt = vaultService.getGuildVault(player.getUniqueId());
-
-        if (vaultOpt.isEmpty()) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Your guild does not have a vault"));
-            return true;
-        }
-
-        Vault vault = vaultOpt.get();
-        int page = 1;
-        if (args.length >= 3) {
-            try {
-                page = Integer.parseInt(args[2]);
-            } catch (NumberFormatException e) {
-                page = 1;
-            }
-        }
-
-        int offset = (page - 1) * TRANSACTION_PAGE_SIZE;
-
-        List<VaultTransaction> transactions = vaultService.getRecentTransactions(vault.getId(), TRANSACTION_PAGE_SIZE * page);
-
-        if (transactions.isEmpty()) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.WARNING, "No transactions recorded"));
-            return true;
-        }
-
-        player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Vault Transactions", " (Page " + page + ")"));
-
-        int shown = 0;
-        for (int i = offset; i < transactions.size() && shown < TRANSACTION_PAGE_SIZE; i++) {
-            VaultTransaction tx = transactions.get(i);
-            String playerName = org.bukkit.Bukkit.getOfflinePlayer(tx.playerId()).getName();
-            if (playerName == null) playerName = tx.playerId().toString().substring(0, UUID_DISPLAY_LENGTH);
-
-            String action = tx.action() == VaultTransaction.TransactionType.DEPOSIT ? "<green>+</green>" : "<red>-</red>";
-            String itemName = tx.itemType().name().toLowerCase().replace("_", " ");
-            String time = DATE_FORMAT.format(new Date(tx.timestamp()));
-
-            player.sendMessage(MessageFormatter.deserialize(
-                    "<gray>" + time + " " + action + " <gold>" + tx.amount() + "x " + itemName + "</gold> by " + playerName + "</gray>"));
-            shown++;
-        }
-
-        if (transactions.size() > page * TRANSACTION_PAGE_SIZE) {
-            player.sendMessage(MessageFormatter.deserialize(
-                    "<gray>Use <yellow>/g vault log " + (page + 1) + "</yellow> for more</gray>"));
-        }
 
         return true;
     }

@@ -61,4 +61,13 @@ public interface SubregionRepository {
      * Gets the count of subregions owned by a guild.
      */
     int getCountByGuild(String guildId);
+
+    /**
+     * Gets the total volume of all subregions of a specific type for a guild.
+     *
+     * @param guildId the guild ID
+     * @param typeId  the type ID
+     * @return total volume in blocks, or 0 if none found
+     */
+    long getTotalVolumeByGuildAndType(String guildId, String typeId);
 }

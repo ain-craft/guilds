@@ -27,6 +27,8 @@ import org.aincraft.storage.SQLitePlayerGuildMapping;
 import org.aincraft.storage.SQLiteGuildRelationshipRepository;
 import org.aincraft.storage.SQLiteGuildDefaultPermissionsRepository;
 import org.aincraft.subregion.SelectionManager;
+import org.aincraft.subregion.SelectionVisualizer;
+import org.aincraft.subregion.SelectionVisualizerListener;
 import org.aincraft.subregion.SQLiteSubregionRepository;
 import org.aincraft.subregion.SubregionRepository;
 import org.aincraft.subregion.SubregionService;
@@ -40,8 +42,17 @@ import org.aincraft.subregion.RegionRoleRepository;
 import org.aincraft.subregion.SQLiteRegionRoleRepository;
 import org.aincraft.subregion.MemberRegionRoleRepository;
 import org.aincraft.subregion.SQLiteMemberRegionRoleRepository;
+import org.aincraft.subregion.RegionTypeLimitRepository;
+import org.aincraft.subregion.SQLiteRegionTypeLimitRepository;
 import org.aincraft.claim.ClaimMovementTracker;
 import org.aincraft.claim.ClaimEntryNotifier;
+import org.aincraft.claim.ChunkClaimLogRepository;
+import org.aincraft.claim.SQLiteChunkClaimLogRepository;
+import org.aincraft.claim.AutoClaimManager;
+import org.aincraft.claim.AutoClaimListener;
+import org.aincraft.InviteService;
+import org.aincraft.storage.InviteRepository;
+import org.aincraft.storage.SQLiteInviteRepository;
 import org.aincraft.multiblock.MultiblockRegistry;
 import org.aincraft.multiblock.MultiblockService;
 import org.aincraft.multiblock.MultiblockListener;
@@ -53,6 +64,7 @@ import org.aincraft.vault.VaultService;
 import org.aincraft.vault.VaultHandler;
 import org.aincraft.vault.gui.VaultGUIListener;
 import org.aincraft.role.gui.RoleCreationGUIListener;
+import org.aincraft.config.GuildsConfig;
 
 import java.io.File;
 
@@ -80,17 +92,31 @@ public class GuildsModule extends AbstractModule {
         bind(SubregionRepository.class).to(SQLiteSubregionRepository.class).in(Singleton.class);
         bind(SubregionTypeRegistry.class).in(Singleton.class);
         bind(SubregionService.class).in(Singleton.class);
+        bind(SelectionVisualizer.class).in(Singleton.class);
         bind(SelectionManager.class).in(Singleton.class);
+        bind(SelectionVisualizerListener.class).in(Singleton.class);
         bind(RegionMovementTracker.class).in(Singleton.class);
         bind(RegionEntryNotifier.class).in(Singleton.class);
         bind(RegionPermissionRepository.class).to(SQLiteRegionPermissionRepository.class).in(Singleton.class);
         bind(RegionPermissionService.class).in(Singleton.class);
         bind(RegionRoleRepository.class).to(SQLiteRegionRoleRepository.class).in(Singleton.class);
         bind(MemberRegionRoleRepository.class).to(SQLiteMemberRegionRoleRepository.class).in(Singleton.class);
+        bind(RegionTypeLimitRepository.class).to(SQLiteRegionTypeLimitRepository.class).in(Singleton.class);
 
         // Claim tracking bindings
         bind(ClaimMovementTracker.class).in(Singleton.class);
         bind(ClaimEntryNotifier.class).in(Singleton.class);
+
+        // Auto-claim system
+        bind(AutoClaimManager.class).in(Singleton.class);
+        bind(AutoClaimListener.class).in(Singleton.class);
+
+        // Claim logging system
+        bind(ChunkClaimLogRepository.class).to(SQLiteChunkClaimLogRepository.class).in(Singleton.class);
+
+        // Invite system
+        bind(InviteRepository.class).to(SQLiteInviteRepository.class).in(Singleton.class);
+        bind(InviteService.class).in(Singleton.class);
 
         // Services
         bind(GuildService.class).in(Singleton.class);
@@ -115,6 +141,9 @@ public class GuildsModule extends AbstractModule {
 
         // Role creation wizard
         bind(RoleCreationGUIListener.class).in(Singleton.class);
+
+        // Configuration
+        bind(GuildsConfig.class).in(Singleton.class);
     }
 
     @Provides

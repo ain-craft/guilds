@@ -49,7 +49,8 @@ public class SQLiteGuildRepository implements GuildRepository {
                 homeblock_chunk_x INTEGER,
                 homeblock_chunk_z INTEGER,
                 allow_explosions INTEGER DEFAULT 1,
-                allow_fire INTEGER DEFAULT 1
+                allow_fire INTEGER DEFAULT 1,
+                is_public INTEGER DEFAULT 0
             );
             CREATE INDEX IF NOT EXISTS idx_guild_name ON guilds(name);
             """;
@@ -75,7 +76,8 @@ public class SQLiteGuildRepository implements GuildRepository {
                 "ALTER TABLE guilds ADD COLUMN homeblock_chunk_x INTEGER",
                 "ALTER TABLE guilds ADD COLUMN homeblock_chunk_z INTEGER",
                 "ALTER TABLE guilds ADD COLUMN allow_explosions INTEGER DEFAULT 1",
-                "ALTER TABLE guilds ADD COLUMN allow_fire INTEGER DEFAULT 1"
+                "ALTER TABLE guilds ADD COLUMN allow_fire INTEGER DEFAULT 1",
+                "ALTER TABLE guilds ADD COLUMN is_public INTEGER DEFAULT 0"
             };
 
             for (String migration : migrations) {
@@ -113,7 +115,7 @@ public class SQLiteGuildRepository implements GuildRepository {
                     SET name = ?, description = ?, owner_id = ?, max_members = ?, members = ?,
                         spawn_world = ?, spawn_x = ?, spawn_y = ?, spawn_z = ?, spawn_yaw = ?, spawn_pitch = ?, color = ?,
                         homeblock_world = ?, homeblock_chunk_x = ?, homeblock_chunk_z = ?,
-                        allow_explosions = ?, allow_fire = ?
+                        allow_explosions = ?, allow_fire = ?, is_public = ?
                     WHERE id = ?
                     """;
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -135,7 +137,8 @@ public class SQLiteGuildRepository implements GuildRepository {
                     pstmt.setObject(15, homeblock != null ? homeblock.z() : null);
                     pstmt.setInt(16, guild.isExplosionsAllowed() ? 1 : 0);
                     pstmt.setInt(17, guild.isFireAllowed() ? 1 : 0);
-                    pstmt.setString(18, guild.getId());
+                    pstmt.setInt(18, guild.isPublic() ? 1 : 0);
+                    pstmt.setString(19, guild.getId());
                     pstmt.executeUpdate();
                 }
             } else {
@@ -145,8 +148,8 @@ public class SQLiteGuildRepository implements GuildRepository {
                     (id, name, description, owner_id, created_at, max_members, members,
                      spawn_world, spawn_x, spawn_y, spawn_z, spawn_yaw, spawn_pitch, color,
                      homeblock_world, homeblock_chunk_x, homeblock_chunk_z,
-                     allow_explosions, allow_fire)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     allow_explosions, allow_fire, is_public)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """;
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, guild.getId());
@@ -169,6 +172,7 @@ public class SQLiteGuildRepository implements GuildRepository {
                     pstmt.setObject(17, homeblock != null ? homeblock.z() : null);
                     pstmt.setInt(18, guild.isExplosionsAllowed() ? 1 : 0);
                     pstmt.setInt(19, guild.isFireAllowed() ? 1 : 0);
+                    pstmt.setInt(20, guild.isPublic() ? 1 : 0);
                     pstmt.executeUpdate();
                 }
             }
@@ -288,6 +292,14 @@ public class SQLiteGuildRepository implements GuildRepository {
             // Columns don't exist (old database), use defaults (true)
             guild.setExplosionsAllowed(true);
             guild.setFireAllowed(true);
+        }
+
+        // Restore is_public flag
+        try {
+            guild.setPublic(rs.getInt("is_public") != 0);
+        } catch (SQLException e) {
+            // Column doesn't exist (old database), use default (false)
+            guild.setPublic(false);
         }
 
         return guild;
