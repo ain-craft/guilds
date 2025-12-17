@@ -116,7 +116,7 @@ class GuildManagerTest {
             guild.joinGuild(playerId);
 
             when(guildService.getPlayerGuild(playerId)).thenReturn(guild);
-            when(guildService.leaveGuild(guild.getId(), playerId)).thenReturn(true);
+            when(guildService.leaveGuild(guild.getId(), playerId)).thenReturn(LeaveResult.success());
 
             boolean result = guildManager.leaveGuild(playerId);
 
@@ -255,24 +255,25 @@ class GuildManagerTest {
             Guild guild = new Guild("Test", null, playerId);
             when(guildService.getPlayerGuild(playerId)).thenReturn(guild);
             when(guildService.claimChunk(eq(guild.getId()), eq(playerId), any(ChunkKey.class)))
-                    .thenReturn(true);
+                    .thenReturn(ClaimResult.success());
 
-            boolean result = guildManager.claimChunk(player);
+            ClaimResult result = guildManager.claimChunk(player);
 
-            assertThat(result).isTrue();
+            assertThat(result.isSuccess()).isTrue();
             verify(guildService).claimChunk(eq(guild.getId()), eq(playerId), argThat(
                     key -> key.x() == 5 && key.z() == 10 && key.world().equals("world")
             ));
         }
 
         @Test
-        @DisplayName("should return false when player not in guild")
-        void shouldReturnFalseWhenPlayerNotInGuild() {
+        @DisplayName("should return failure when player not in guild")
+        void shouldReturnFailureWhenPlayerNotInGuild() {
             when(guildService.getPlayerGuild(playerId)).thenReturn(null);
 
-            boolean result = guildManager.claimChunk(player);
+            ClaimResult result = guildManager.claimChunk(player);
 
-            assertThat(result).isFalse();
+            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.getStatus()).isEqualTo(ClaimResult.Status.FAILURE);
             verify(guildService, never()).claimChunk(anyString(), any(), any());
         }
     }

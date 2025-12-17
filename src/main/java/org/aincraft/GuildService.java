@@ -158,29 +158,34 @@ public class GuildService {
      * @return true if the player left successfully, false otherwise
      * @throws IllegalArgumentException if guildId or playerId is null
      */
-    public boolean leaveGuild(String guildId, UUID playerId) {
+    public LeaveResult leaveGuild(String guildId, UUID playerId) {
         Objects.requireNonNull(guildId, "Guild ID cannot be null");
         Objects.requireNonNull(playerId, "Player ID cannot be null");
 
         Optional<Guild> guildOpt = guildRepository.findById(guildId);
         if (guildOpt.isEmpty()) {
-            return false;
+            return LeaveResult.failure("Guild not found");
         }
 
         Guild guild = guildOpt.get();
-        if (guild.leaveGuild(playerId)) {
+        LeaveResult result = guild.leaveGuild(playerId);
+
+        if (result.isSuccess()) {
             playerGuildMapping.removePlayerFromGuild(playerId);
             memberRepository.removeMember(guildId, playerId);
             memberRoleRepository.removeAllMemberRoles(guildId, playerId);
             guildRepository.save(guild);
-            return true;
         }
 
-        return false;
+        return result;
     }
 
     /**
-     * Kicks a member from a guild. Only the guild owner can kick members.
+     * Kicks a member from a guild.
+     * Authorization is checked using role hierarchy:
+     * - Owner can kick anyone
+     * - Players with ADMIN permission can kick anyone (except owner)
+     * - Players with KICK permission can only kick members with lower role priority
      *
      * @param guildId the ID of the guild (cannot be null)
      * @param kickerId the UUID of the player attempting to kick (cannot be null)
@@ -199,7 +204,20 @@ public class GuildService {
         }
 
         Guild guild = guildOpt.get();
-        if (guild.kickMember(kickerId, targetId)) {
+
+        // Check if kicker can kick target (hierarchy check)
+        if (!canKickByHierarchy(guild, kickerId, targetId)) {
+            return false;
+        }
+
+        // Check basic kick validation (target is member, target is not owner)
+        if (!guild.isMember(targetId) || guild.isOwner(targetId)) {
+            return false;
+        }
+
+        // Perform kick (forced removal, bypassing owner check since we already validated)
+        LeaveResult result = guild.leaveGuild(targetId);
+        if (result.isSuccess()) {
             playerGuildMapping.removePlayerFromGuild(targetId);
             memberRepository.removeMember(guildId, targetId);
             memberRoleRepository.removeAllMemberRoles(guildId, targetId);
@@ -302,6 +320,97 @@ public class GuildService {
     }
 
     /**
+     * Gets the highest priority role for a member.
+     *
+     * @param guildId the guild ID
+     * @param playerId the player UUID
+     * @return the highest priority role, or empty if no roles assigned
+     */
+    private Optional<GuildRole> getHighestPriorityRole(String guildId, UUID playerId) {
+        List<String> roleIds = memberRoleRepository.getMemberRoleIds(guildId, playerId);
+        GuildRole highestRole = null;
+
+        for (String roleId : roleIds) {
+            Optional<GuildRole> roleOpt = roleRepository.findById(roleId);
+            if (roleOpt.isPresent()) {
+                GuildRole role = roleOpt.get();
+                if (highestRole == null || role.getPriority() > highestRole.getPriority()) {
+                    highestRole = role;
+                }
+            }
+        }
+
+        return Optional.ofNullable(highestRole);
+    }
+
+    /**
+     * Checks if a kicker can kick a target based on role hierarchy.
+     * Requirements:
+     * - Cannot kick yourself
+     * - Kicker must be guild owner OR have ADMIN permission OR have KICK permission with higher role priority
+     * - Target cannot be the guild owner
+     * - Only owner can kick players with ADMIN permission
+     * - Kicker's highest role priority must be higher than target's highest role priority
+     *
+     * @param guild the guild
+     * @param kickerId the UUID of the player attempting to kick
+     * @param targetId the UUID of the player to be kicked
+     * @return true if kicker can kick target based on hierarchy
+     */
+    private boolean canKickByHierarchy(Guild guild, UUID kickerId, UUID targetId) {
+        // Cannot kick yourself
+        if (kickerId.equals(targetId)) {
+            return false;
+        }
+
+        // Owner can kick anyone
+        if (guild.isOwner(kickerId)) {
+            return true;
+        }
+
+        // Cannot kick owner
+        if (guild.isOwner(targetId)) {
+            return false;
+        }
+
+        // Check if target has ADMIN permission - only owner can kick admins
+        boolean targetHasAdminPerm = hasPermission(guild.getId(), targetId, GuildPermission.ADMIN);
+        if (targetHasAdminPerm) {
+            return false; // Non-owner cannot kick admins
+        }
+
+        // Check if kicker has ADMIN or KICK permission
+        boolean hasAdminPerm = hasPermission(guild.getId(), kickerId, GuildPermission.ADMIN);
+        boolean hasKickPerm = hasPermission(guild.getId(), kickerId, GuildPermission.KICK);
+
+        if (!hasAdminPerm && !hasKickPerm) {
+            return false;
+        }
+
+        // Admin can kick anyone (except owner and other admins, already checked)
+        if (hasAdminPerm) {
+            return true;
+        }
+
+        // For KICK permission, check role hierarchy
+        Optional<GuildRole> kickerRoleOpt = getHighestPriorityRole(guild.getId(), kickerId);
+        Optional<GuildRole> targetRoleOpt = getHighestPriorityRole(guild.getId(), targetId);
+
+        // If target has no role, kicker can kick
+        if (targetRoleOpt.isEmpty()) {
+            return true;
+        }
+
+        // If kicker has no role but target does, cannot kick
+        if (kickerRoleOpt.isEmpty()) {
+            return false;
+        }
+
+        // Compare priorities: kicker must have higher priority
+        return kickerRoleOpt.get().hasHigherPriorityThan(targetRoleOpt.get());
+    }
+
+    /**
      * Gets the permissions for a member in a guild.
      *
      * @param guildId the guild ID
@@ -359,26 +468,37 @@ public class GuildService {
      * @param guildId the guild ID
      * @param playerId the player claiming the chunk
      * @param chunk the chunk to claim
-     * @return true if claimed successfully, false if no permission or already claimed
+     * @return ClaimResult indicating success or specific failure reason
      */
-    public boolean claimChunk(String guildId, UUID playerId, ChunkKey chunk) {
+    public ClaimResult claimChunk(String guildId, UUID playerId, ChunkKey chunk) {
         Objects.requireNonNull(guildId, "Guild ID cannot be null");
         Objects.requireNonNull(playerId, "Player ID cannot be null");
         Objects.requireNonNull(chunk, "Chunk cannot be null");
 
         if (!hasPermission(guildId, playerId, GuildPermission.CLAIM)) {
-            return false;
+            return ClaimResult.noPermission();
+        }
+
+        // Check if already claimed by this guild
+        Guild chunkOwner = getChunkOwner(chunk);
+        if (chunkOwner != null && chunkOwner.getId().equals(guildId)) {
+            return ClaimResult.alreadyOwned();
+        }
+
+        // Check if already claimed by another guild
+        if (chunkOwner != null) {
+            return ClaimResult.alreadyClaimed(chunkOwner.getName());
         }
 
         // Validate chunk is adjacent to existing claims or is first claim
         List<ChunkKey> guildChunks = chunkClaimRepository.getGuildChunks(guildId);
         if (!guildChunks.isEmpty() && !isAdjacentToGuild(chunk, guildChunks)) {
-            return false; // Claim must be adjacent to existing guild territory
+            return ClaimResult.notAdjacent();
         }
 
         boolean claimed = chunkClaimRepository.claim(chunk, guildId, playerId);
         if (!claimed) {
-            return false;
+            return ClaimResult.failure("Failed to claim chunk");
         }
 
         // Auto-set homeblock and spawn if this is first claim
@@ -411,7 +531,7 @@ public class GuildService {
             }
         }
 
-        return true;
+        return ClaimResult.success();
     }
 
     /**
@@ -513,6 +633,21 @@ public class GuildService {
      * @return the created role, or null if failed
      */
     public GuildRole createRole(String guildId, UUID requesterId, String name, int permissions) {
+        return createRole(guildId, requesterId, name, permissions, 0);
+    }
+
+    /**
+     * Creates a new role for a guild with specified priority.
+     * Requires MANAGE_ROLES permission.
+     *
+     * @param guildId the guild ID
+     * @param requesterId the player creating the role
+     * @param name the role name
+     * @param permissions the permission bitfield
+     * @param priority the role priority (higher = more authority)
+     * @return the created role, or null if failed
+     */
+    public GuildRole createRole(String guildId, UUID requesterId, String name, int permissions, int priority) {
         Objects.requireNonNull(guildId, "Guild ID cannot be null");
         Objects.requireNonNull(requesterId, "Requester ID cannot be null");
         Objects.requireNonNull(name, "Name cannot be null");
@@ -525,7 +660,7 @@ public class GuildService {
             return null; // Role with this name already exists
         }
 
-        GuildRole role = new GuildRole(guildId, name, permissions);
+        GuildRole role = new GuildRole(guildId, name, permissions, priority);
         roleRepository.save(role);
         return role;
     }
@@ -586,6 +721,17 @@ public class GuildService {
         role.setPermissions(permissions);
         roleRepository.save(role);
         return true;
+    }
+
+    /**
+     * Saves a role to the repository.
+     * Used for updating role properties like priority.
+     *
+     * @param role the role to save
+     */
+    public void saveRole(GuildRole role) {
+        Objects.requireNonNull(role, "Role cannot be null");
+        roleRepository.save(role);
     }
 
     /**

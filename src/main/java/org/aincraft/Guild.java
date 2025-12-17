@@ -121,12 +121,16 @@ public final class Guild {
      * @return true if the player was successfully removed, false if they're the owner or not a member
      * @throws IllegalArgumentException if playerId is null
      */
-    public boolean leaveGuild(UUID playerId) {
+    public LeaveResult leaveGuild(UUID playerId) {
         validatePlayerId(playerId);
         if (isOwner(playerId)) {
-            return false;
+            return LeaveResult.ownerCannotLeave();
         }
-        return members.remove(playerId);
+        if (!members.contains(playerId)) {
+            return LeaveResult.notInGuild();
+        }
+        members.remove(playerId);
+        return LeaveResult.success();
     }
 
     /**

@@ -16,7 +16,12 @@ public enum GuildPermission {
     MANAGE_REGIONS(1 << 8), // 256
     VAULT_DEPOSIT(1 << 9),  // 512
     VAULT_WITHDRAW(1 << 10), // 1024
-    MANAGE_SPAWN(1 << 11);   // 2048
+    MANAGE_SPAWN(1 << 11),   // 2048
+    CREATE_ROLE(1 << 12),    // 4096
+    DELETE_ROLE(1 << 13),    // 8192
+    EDIT_ROLE(1 << 14),      // 16384
+    ADMIN(1 << 15),          // 32768
+    VIEW_LOGS(1 << 16);      // 65536
 
     private final int bit;
 

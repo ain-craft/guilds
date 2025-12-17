@@ -29,6 +29,7 @@ import org.aincraft.vault.VaultComponent;
 import org.aincraft.vault.VaultHandler;
 import org.aincraft.vault.VaultService;
 import org.aincraft.vault.gui.VaultGUIListener;
+import org.aincraft.role.gui.RoleCreationGUIListener;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -106,6 +107,10 @@ public class GuildsPlugin extends JavaPlugin {
         VaultGUIListener vaultGUIListener = injector.getInstance(VaultGUIListener.class);
         getServer().getPluginManager().registerEvents(vaultHandler, this);
         getServer().getPluginManager().registerEvents(vaultGUIListener, this);
+
+        // Register role creation wizard listener
+        RoleCreationGUIListener roleGUIListener = injector.getInstance(RoleCreationGUIListener.class);
+        getServer().getPluginManager().registerEvents(roleGUIListener, this);
 
         LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
@@ -920,6 +925,17 @@ public class GuildsPlugin extends JavaPlugin {
             player.sendMessage("§7Name: §f" + guild.getName());
             player.sendMessage("§7ID: §f" + guild.getId());
             player.sendMessage("§7Description: §f" + (guild.getDescription().isEmpty() ? "No description" : guild.getDescription()));
+
+            // Auto-claim the chunk where guild was created
+            ChunkKey chunk = ChunkKey.from(player.getLocation().getChunk());
+            ClaimResult claimResult = guildService.claimChunk(guild.getId(), player.getUniqueId(), chunk);
+            if (claimResult.isSuccess()) {
+                player.sendMessage("§a✓ Automatically claimed chunk at §f" + chunk.x() + ", " + chunk.z());
+                player.sendMessage("§a✓ Homeblock and spawn set!");
+            } else {
+                player.sendMessage("§eWarning: Could not auto-claim chunk. Reason: " + claimResult.getReason());
+            }
+
             return 1;
         } catch (IllegalStateException e) {
             player.sendMessage("§cError: " + e.getMessage());
@@ -1102,15 +1118,15 @@ public class GuildsPlugin extends JavaPlugin {
         }
 
         // Attempt claim
-        if (guildManager.claimChunk(player)) {
+        ClaimResult result = guildManager.claimChunk(player);
+        if (result.isSuccess()) {
             Chunk chunk = player.getLocation().getChunk();
             player.sendMessage(MessageFormatter.format(
                 "<green>Claimed chunk at <gold>%s, %s</gold></green>",
                 chunk.getX(), chunk.getZ()));
             return 1;
         } else {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
-                "Failed to claim chunk. You may lack CLAIM permission or chunk is already claimed."));
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, result.getReason()));
             return 0;
         }
     }

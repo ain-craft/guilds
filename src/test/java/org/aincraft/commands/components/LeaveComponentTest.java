@@ -2,6 +2,7 @@ package org.aincraft.commands.components;
 
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
+import org.aincraft.LeaveResult;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +55,7 @@ class LeaveComponentTest {
 
         when(player.hasPermission("guilds.leave")).thenReturn(true);
         when(guildService.getPlayerGuild(playerId)).thenReturn(guild);
-        when(guildService.leaveGuild(guild.getId(), playerId)).thenReturn(true);
+        when(guildService.leaveGuild(guild.getId(), playerId)).thenReturn(LeaveResult.success());
 
         boolean result = leaveComponent.execute(player, new String[]{"leave"});
 
@@ -81,11 +82,12 @@ class LeaveComponentTest {
 
         when(player.hasPermission("guilds.leave")).thenReturn(true);
         when(guildService.getPlayerGuild(playerId)).thenReturn(guild);
+        when(guildService.leaveGuild(guild.getId(), playerId)).thenReturn(LeaveResult.ownerCannotLeave());
 
         boolean result = leaveComponent.execute(player, new String[]{"leave"});
 
         assertThat(result).isTrue();
-        verify(guildService, never()).leaveGuild(anyString(), any());
+        verify(guildService).leaveGuild(guild.getId(), playerId);
     }
 
     @Test

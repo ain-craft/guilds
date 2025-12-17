@@ -26,6 +26,7 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
                 guild_id TEXT NOT NULL,
                 name TEXT NOT NULL,
                 permissions INTEGER NOT NULL DEFAULT 0,
+                priority INTEGER NOT NULL DEFAULT 0,
                 UNIQUE(guild_id, name)
             );
             CREATE INDEX IF NOT EXISTS idx_guild_roles_guild ON guild_roles(guild_id);
@@ -38,6 +39,13 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
                     stmt.execute(sql.trim());
                 }
             }
+
+            // Migration: Add priority column
+            try {
+                stmt.execute("ALTER TABLE guild_roles ADD COLUMN priority INTEGER NOT NULL DEFAULT 0");
+            } catch (SQLException e) {
+                // Column likely already exists, ignore
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize guild_roles table", e);
         }
@@ -48,8 +56,8 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
         Objects.requireNonNull(role, "Role cannot be null");
 
         String upsertSQL = """
-            INSERT OR REPLACE INTO guild_roles (id, guild_id, name, permissions)
-            VALUES (?, ?, ?, ?)
+            INSERT OR REPLACE INTO guild_roles (id, guild_id, name, permissions, priority)
+            VALUES (?, ?, ?, ?, ?)
             """;
 
         try (Connection conn = DriverManager.getConnection(connectionString);
@@ -58,6 +66,7 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
             pstmt.setString(2, role.getGuildId());
             pstmt.setString(3, role.getName());
             pstmt.setInt(4, role.getPermissions());
+            pstmt.setInt(5, role.getPriority());
             pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to save guild role", e);
@@ -83,7 +92,7 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
     public Optional<GuildRole> findById(String roleId) {
         Objects.requireNonNull(roleId, "Role ID cannot be null");
 
-        String selectSQL = "SELECT id, guild_id, name, permissions FROM guild_roles WHERE id = ?";
+        String selectSQL = "SELECT id, guild_id, name, permissions, priority FROM guild_roles WHERE id = ?";
 
         try (Connection conn = DriverManager.getConnection(connectionString);
              PreparedStatement pstmt = conn.prepareStatement(selectSQL)) {
@@ -104,7 +113,7 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
     public List<GuildRole> findByGuildId(String guildId) {
         Objects.requireNonNull(guildId, "Guild ID cannot be null");
 
-        String selectSQL = "SELECT id, guild_id, name, permissions FROM guild_roles WHERE guild_id = ?";
+        String selectSQL = "SELECT id, guild_id, name, permissions, priority FROM guild_roles WHERE guild_id = ? ORDER BY priority DESC";
         List<GuildRole> roles = new ArrayList<>();
 
         try (Connection conn = DriverManager.getConnection(connectionString);
@@ -127,7 +136,7 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
         Objects.requireNonNull(guildId, "Guild ID cannot be null");
         Objects.requireNonNull(name, "Name cannot be null");
 
-        String selectSQL = "SELECT id, guild_id, name, permissions FROM guild_roles WHERE guild_id = ? AND name = ?";
+        String selectSQL = "SELECT id, guild_id, name, permissions, priority FROM guild_roles WHERE guild_id = ? AND name = ?";
 
         try (Connection conn = DriverManager.getConnection(connectionString);
              PreparedStatement pstmt = conn.prepareStatement(selectSQL)) {
@@ -161,11 +170,20 @@ public final class SQLiteGuildRoleRepository implements GuildRoleRepository {
     }
 
     private GuildRole mapResultSet(ResultSet rs) throws SQLException {
+        int priority;
+        try {
+            priority = rs.getInt("priority");
+        } catch (SQLException e) {
+            // Column doesn't exist (old database), use default
+            priority = 0;
+        }
+
         return new GuildRole(
                 rs.getString("id"),
                 rs.getString("guild_id"),
                 rs.getString("name"),
-                rs.getInt("permissions")
+                rs.getInt("permissions"),
+                priority
         );
     }
 }

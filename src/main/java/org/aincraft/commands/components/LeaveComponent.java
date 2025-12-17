@@ -2,6 +2,7 @@ package org.aincraft.commands.components;
 
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
+import org.aincraft.LeaveResult;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
 import org.bukkit.command.CommandSender;
@@ -51,17 +52,22 @@ public class LeaveComponent implements GuildCommand {
             return true;
         }
 
-        if (guild.isOwner(player.getUniqueId())) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ Guild owners cannot leave. Delete the guild or transfer ownership"));
-            return true;
-        }
+        LeaveResult result = guildService.leaveGuild(guild.getId(), player.getUniqueId());
 
-        if (guildService.leaveGuild(guild.getId(), player.getUniqueId())) {
+        if (result.isSuccess()) {
             player.sendMessage(MessageFormatter.deserialize("<green>✓ You left '<gold>" + guild.getName() + "</gold>'</green>"));
             return true;
         }
 
-        player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ Failed to leave guild"));
+        // Display verbose error message
+        String errorMsg = switch (result.getStatus()) {
+            case OWNER_CANNOT_LEAVE -> "✗ " + result.getReason();
+            case NOT_IN_GUILD -> "✗ " + result.getReason();
+            case FAILURE -> "✗ Failed to leave guild: " + result.getReason();
+            default -> "✗ Failed to leave guild";
+        };
+
+        player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, errorMsg));
         return true;
     }
 }

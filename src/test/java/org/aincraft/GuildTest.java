@@ -115,9 +115,9 @@ class GuildTest {
         void shouldAllowMemberToLeave() {
             guild.joinGuild(memberId);
 
-            boolean result = guild.leaveGuild(memberId);
+            LeaveResult result = guild.leaveGuild(memberId);
 
-            assertThat(result).isTrue();
+            assertThat(result.isSuccess()).isTrue();
             assertThat(guild.isMember(memberId)).isFalse();
             assertThat(guild.getMemberCount()).isEqualTo(1);
         }
@@ -125,18 +125,20 @@ class GuildTest {
         @Test
         @DisplayName("should prevent owner from leaving")
         void shouldPreventOwnerFromLeaving() {
-            boolean result = guild.leaveGuild(ownerId);
+            LeaveResult result = guild.leaveGuild(ownerId);
 
-            assertThat(result).isFalse();
+            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.getStatus()).isEqualTo(LeaveResult.Status.OWNER_CANNOT_LEAVE);
             assertThat(guild.isMember(ownerId)).isTrue();
         }
 
         @Test
-        @DisplayName("should return false when non-member tries to leave")
-        void shouldReturnFalseWhenNonMemberTriesToLeave() {
-            boolean result = guild.leaveGuild(memberId);
+        @DisplayName("should return NOT_IN_GUILD when non-member tries to leave")
+        void shouldReturnNotInGuildWhenNonMemberTriesToLeave() {
+            LeaveResult result = guild.leaveGuild(memberId);
 
-            assertThat(result).isFalse();
+            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.getStatus()).isEqualTo(LeaveResult.Status.NOT_IN_GUILD);
         }
 
         @Test

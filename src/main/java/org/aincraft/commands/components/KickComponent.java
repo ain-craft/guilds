@@ -69,12 +69,31 @@ public class KickComponent implements GuildCommand {
             return true;
         }
 
+        // Check if trying to kick yourself
+        if (player.getUniqueId().equals(target.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ You cannot kick yourself"));
+            return true;
+        }
+
+        // Check if target is guild owner
+        if (guild.isOwner(target.getUniqueId())) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ You cannot kick the guild owner"));
+            return true;
+        }
+
+        // Check if target has ADMIN permission (only owner can kick admins)
+        if (!guild.isOwner(player.getUniqueId()) &&
+            guildService.hasPermission(guild.getId(), target.getUniqueId(), org.aincraft.GuildPermission.ADMIN)) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ Only the guild owner can kick administrators"));
+            return true;
+        }
+
         if (guildService.kickMember(guild.getId(), player.getUniqueId(), target.getUniqueId())) {
             player.sendMessage(MessageFormatter.deserialize("<green>✓ <gold>" + target.getName() + "</gold> was kicked from the guild</green>"));
             return true;
         }
 
-        player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ Failed to kick member. They may not be in your guild"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "✗ Failed to kick member. You may lack permission or they have a higher role than you"));
         return true;
     }
 }

@@ -6,6 +6,7 @@ import org.aincraft.GuildRole;
 import org.aincraft.GuildService;
 import org.aincraft.commands.GuildCommand;
 import org.aincraft.commands.MessageFormatter;
+import org.aincraft.role.gui.RoleCreationGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -69,6 +70,7 @@ public final class RoleComponent implements GuildCommand {
             case "list" -> handleList(player, guild);
             case "info" -> handleInfo(player, guild, args);
             case "setperm" -> handleSetPerm(player, guild, args);
+            case "setpriority" -> handleSetPriority(player, guild, args);
             case "assign" -> handleAssign(player, guild, args);
             case "unassign" -> handleUnassign(player, guild, args);
             default -> {
@@ -80,40 +82,71 @@ public final class RoleComponent implements GuildCommand {
 
     private void showRoleUsage(Player player) {
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Role Commands", ""));
-        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role create <name> [perms]", "Create role"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role create <name>", "Create role with wizard GUI"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role create <name> <perms> [priority]", "Create role directly"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role delete <name>", "Delete role"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role list", "List roles"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role info <name>", "Show role info"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role setperm <name> <perm> <true|false>", "Set permission"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role setpriority <name> <priority>", "Set role priority"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role assign <player> <role>", "Assign role"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g role unassign <player> <role>", "Unassign role"));
     }
 
     private boolean handleCreate(Player player, Guild guild, String[] args) {
         if (args.length < 3) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g role create <name> [permissions]"));
-            player.sendMessage(MessageFormatter.deserialize("<gray>Permissions: integer or comma-separated (BUILD,DESTROY,INTERACT,CLAIM,UNCLAIM,INVITE,KICK,MANAGE_ROLES)"));
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g role create <name> [permissions] [priority]"));
+            player.sendMessage(MessageFormatter.deserialize("<gray>Permissions: integer (e.g., 7 for BUILD|DESTROY|INTERACT)"));
+            player.sendMessage(MessageFormatter.deserialize("<gray>Priority: higher number = more authority (default: 0)"));
             return true;
         }
 
         String name = args[2];
-        int permissions = 0;
 
-        if (args.length > 3) {
-            permissions = parsePermissions(args[3]);
-            if (permissions == -1) {
-                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid permissions format"));
+        // Check if role name already exists
+        if (guildService.getRoleByName(guild.getId(), name) != null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "A role with that name already exists."));
+            return true;
+        }
+
+        // Check MANAGE_ROLES permission
+        if (!guildService.hasPermission(guild.getId(), player.getUniqueId(), GuildPermission.MANAGE_ROLES)) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You lack MANAGE_ROLES permission."));
+            return true;
+        }
+
+        // No permissions provided - open wizard GUI
+        if (args.length == 3) {
+            RoleCreationGUI gui = new RoleCreationGUI(guild, player, name);
+            player.openInventory(gui.getInventory());
+            return true;
+        }
+
+        // Direct creation with permissions and optional priority
+        int permissions = parsePermissions(args[3]);
+        if (permissions == -1) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid permissions. Must be an integer."));
+            return true;
+        }
+
+        int priority = 0;
+        if (args.length > 4) {
+            try {
+                priority = Integer.parseInt(args[4]);
+            } catch (NumberFormatException e) {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid priority. Must be an integer."));
                 return true;
             }
         }
 
-        GuildRole role = guildService.createRole(guild.getId(), player.getUniqueId(), name, permissions);
+        GuildRole role = guildService.createRole(guild.getId(), player.getUniqueId(), name, permissions, priority);
         if (role == null) {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Failed to create role. Name may exist or you lack MANAGE_ROLES permission."));
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Failed to create role. You may lack MANAGE_ROLES permission."));
             return true;
         }
 
-        player.sendMessage(MessageFormatter.deserialize("<green>Created role '<gold>" + name + "</gold>'</green>"));
+        String priorityText = priority > 0 ? " <gray>(priority: <yellow>" + priority + "</yellow>)</gray>" : "";
+        player.sendMessage(MessageFormatter.deserialize("<green>Created role '<gold>" + name + "</gold>'" + priorityText + "</green>"));
         return true;
     }
 
@@ -141,12 +174,13 @@ public final class RoleComponent implements GuildCommand {
     private boolean handleList(Player player, Guild guild) {
         List<GuildRole> roles = guildService.getGuildRoles(guild.getId());
 
-        player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Guild Roles", ""));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Guild Roles", " (sorted by priority)"));
         if (roles.isEmpty()) {
             player.sendMessage(MessageFormatter.deserialize("<gray>No roles defined"));
         } else {
             for (GuildRole role : roles) {
-                player.sendMessage(MessageFormatter.deserialize("<yellow>" + role.getName() + "<gray> [" + role.getPermissions() + "]"));
+                String priorityBadge = role.getPriority() > 0 ? "<dark_gray>[<gold>" + role.getPriority() + "</gold>]</dark_gray> " : "";
+                player.sendMessage(MessageFormatter.deserialize(priorityBadge + "<yellow>" + role.getName() + "<gray> [" + role.getPermissions() + "]"));
             }
         }
         return true;
@@ -166,6 +200,7 @@ public final class RoleComponent implements GuildCommand {
         }
 
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Role: " + role.getName(), ""));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Priority", String.valueOf(role.getPriority())));
         player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Permissions", formatPermissions(role.getPermissions())));
         player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Bitfield", String.valueOf(role.getPermissions())));
         return true;
@@ -210,6 +245,42 @@ public final class RoleComponent implements GuildCommand {
         } else {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Failed to update permissions. You may lack MANAGE_ROLES permission."));
         }
+        return true;
+    }
+
+    private boolean handleSetPriority(Player player, Guild guild, String[] args) {
+        if (args.length < 4) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g role setpriority <role> <priority>"));
+            player.sendMessage(MessageFormatter.deserialize("<gray>Priority: higher number = more authority"));
+            return true;
+        }
+
+        String roleName = args[2];
+        int priority;
+
+        try {
+            priority = Integer.parseInt(args[3]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Invalid priority. Must be an integer."));
+            return true;
+        }
+
+        GuildRole role = guildService.getRoleByName(guild.getId(), roleName);
+        if (role == null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Role not found: " + roleName));
+            return true;
+        }
+
+        // Check permission
+        if (!guildService.hasPermission(guild.getId(), player.getUniqueId(), GuildPermission.MANAGE_ROLES)) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You lack MANAGE_ROLES permission."));
+            return true;
+        }
+
+        role.setPriority(priority);
+        guildService.saveRole(role);
+
+        player.sendMessage(MessageFormatter.deserialize("<green>Set priority of <gold>" + roleName + "</gold> to <yellow>" + priority + "</yellow></green>"));
         return true;
     }
 
@@ -274,23 +345,13 @@ public final class RoleComponent implements GuildCommand {
     }
 
     /**
-     * Parses permission string as either integer or comma-separated names.
+     * Parses permission string as integer.
      */
     private int parsePermissions(String input) {
         try {
             return Integer.parseInt(input);
         } catch (NumberFormatException e) {
-            // Parse as comma-separated permission names
-            int result = 0;
-            for (String name : input.split(",")) {
-                try {
-                    GuildPermission perm = GuildPermission.valueOf(name.trim().toUpperCase());
-                    result |= perm.getBit();
-                } catch (IllegalArgumentException ex) {
-                    return -1;
-                }
-            }
-            return result;
+            return -1;
         }
     }
 

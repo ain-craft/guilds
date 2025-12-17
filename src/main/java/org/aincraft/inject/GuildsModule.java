@@ -52,6 +52,7 @@ import org.aincraft.vault.SQLiteVaultTransactionRepository;
 import org.aincraft.vault.VaultService;
 import org.aincraft.vault.VaultHandler;
 import org.aincraft.vault.gui.VaultGUIListener;
+import org.aincraft.role.gui.RoleCreationGUIListener;
 
 import java.io.File;
 
@@ -111,6 +112,9 @@ public class GuildsModule extends AbstractModule {
         bind(VaultService.class).in(Singleton.class);
         bind(VaultHandler.class).in(Singleton.class);
         bind(VaultGUIListener.class).in(Singleton.class);
+
+        // Role creation wizard
+        bind(RoleCreationGUIListener.class).in(Singleton.class);
     }
 
     @Provides

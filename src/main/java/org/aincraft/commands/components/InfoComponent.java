@@ -1,5 +1,8 @@
 package org.aincraft.commands.components;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
 import org.aincraft.RelationshipService;
@@ -14,6 +17,7 @@ import org.bukkit.entity.Player;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Component for viewing guild information.
@@ -91,18 +95,80 @@ public class InfoComponent implements GuildCommand {
             player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Description", guild.getDescription()));
         }
 
-        String ownerName = org.bukkit.Bukkit.getOfflinePlayer(guild.getOwnerId()).getName() != null ?
-             org.bukkit.Bukkit.getOfflinePlayer(guild.getOwnerId()).getName() : guild.getOwnerId().toString();
-        player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Owner", ownerName));
+        // Owner with hover
+        Component ownerLine = Component.text()
+            .append(Component.text("Owner", NamedTextColor.YELLOW))
+            .append(Component.text(": ", NamedTextColor.WHITE))
+            .append(createHoverablePlayerName(guild.getOwnerId()))
+            .build();
+        player.sendMessage(ownerLine);
 
         player.sendMessage(MessageFormatter.deserialize("<yellow>Members<reset>: <white>" +
             guild.getMemberCount() + "<gray>/<white>" + guild.getMaxMembers()));
 
-        String dateCreated = new SimpleDateFormat("yyyy-MM-dd").format(new Date(guild.getCreatedAt()));
-        player.sendMessage(MessageFormatter.format(MessageFormatter.INFO, "Created", dateCreated));
+        // Created date with hover
+        Component createdLine = Component.text()
+            .append(Component.text("Created", NamedTextColor.YELLOW))
+            .append(Component.text(": ", NamedTextColor.WHITE))
+            .append(createHoverableCreatedDate(guild.getCreatedAt()))
+            .build();
+        player.sendMessage(createdLine);
 
         // Display relationships
         displayRelationships(player, guild);
+    }
+
+    /**
+     * Creates a hoverable player name component.
+     *
+     * @param playerId the UUID of the player
+     * @return Component with hover showing player info
+     */
+    private Component createHoverablePlayerName(UUID playerId) {
+        var offlinePlayer = org.bukkit.Bukkit.getOfflinePlayer(playerId);
+        String playerName = offlinePlayer.getName() != null ? offlinePlayer.getName() : "Unknown";
+
+        // Build hover tooltip
+        Component tooltip = Component.text()
+            .append(Component.text("Player: ").color(NamedTextColor.YELLOW))
+            .append(Component.text(playerName).color(NamedTextColor.WHITE))
+            .append(Component.newline())
+            .append(Component.text("UUID: ").color(NamedTextColor.YELLOW))
+            .append(Component.text(playerId.toString()).color(NamedTextColor.GRAY))
+            .append(Component.newline())
+            .append(Component.text("Status: ").color(NamedTextColor.YELLOW))
+            .append(Component.text(offlinePlayer.isOnline() ? "Online" : "Offline")
+                .color(offlinePlayer.isOnline() ? NamedTextColor.GREEN : NamedTextColor.RED))
+            .build();
+
+        return Component.text(playerName)
+            .color(NamedTextColor.WHITE)
+            .hoverEvent(HoverEvent.showText(tooltip));
+    }
+
+    /**
+     * Creates a hoverable created date component.
+     *
+     * @param timestamp the creation timestamp
+     * @return Component with hover showing detailed date/time
+     */
+    private Component createHoverableCreatedDate(long timestamp) {
+        String dateOnly = new SimpleDateFormat("yyyy-MM-dd").format(new Date(timestamp));
+        String fullDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z").format(new Date(timestamp));
+        long daysAgo = (System.currentTimeMillis() - timestamp) / (1000 * 60 * 60 * 24);
+
+        // Build hover tooltip
+        Component tooltip = Component.text()
+            .append(Component.text("Created: ").color(NamedTextColor.YELLOW))
+            .append(Component.text(fullDateTime).color(NamedTextColor.WHITE))
+            .append(Component.newline())
+            .append(Component.text("Days ago: ").color(NamedTextColor.YELLOW))
+            .append(Component.text(String.valueOf(daysAgo)).color(NamedTextColor.GRAY))
+            .build();
+
+        return Component.text(dateOnly)
+            .color(NamedTextColor.WHITE)
+            .hoverEvent(HoverEvent.showText(tooltip));
     }
 
     /**

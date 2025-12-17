@@ -71,7 +71,7 @@ public class GuildManager {
         if (guild == null) {
             return false;
         }
-        return guildService.leaveGuild(guild.getId(), playerId);
+        return guildService.leaveGuild(guild.getId(), playerId).isSuccess();
     }
 
     /**
@@ -119,12 +119,12 @@ public class GuildManager {
      * Claims the chunk the player is standing in for their guild.
      *
      * @param player the player claiming the chunk (cannot be null)
-     * @return true if the chunk was claimed successfully, false otherwise
+     * @return ClaimResult indicating success or specific failure reason
      */
-    public boolean claimChunk(Player player) {
+    public ClaimResult claimChunk(Player player) {
         Guild guild = guildService.getPlayerGuild(player.getUniqueId());
         if (guild == null) {
-            return false;
+            return ClaimResult.failure("You are not in a guild");
         }
 
         ChunkKey chunk = ChunkKey.from(player.getLocation().getChunk());

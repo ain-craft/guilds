@@ -14,6 +14,7 @@ public final class GuildRole {
     private final String guildId;
     private String name;
     private int permissions;
+    private int priority;
 
     /**
      * Creates a new GuildRole.
@@ -21,22 +22,43 @@ public final class GuildRole {
      * @param guildId the guild this role belongs to
      * @param name the role name
      * @param permissions the permission bitfield
+     * @param priority the role priority (higher = more authority)
      */
-    public GuildRole(String guildId, String name, int permissions) {
+    public GuildRole(String guildId, String name, int permissions, int priority) {
         this.id = UUID.randomUUID().toString();
         this.guildId = Objects.requireNonNull(guildId, "Guild ID cannot be null");
         this.name = Objects.requireNonNull(name, "Name cannot be null");
         this.permissions = permissions;
+        this.priority = priority;
+    }
+
+    /**
+     * Creates a new GuildRole with default priority (0).
+     *
+     * @param guildId the guild this role belongs to
+     * @param name the role name
+     * @param permissions the permission bitfield
+     */
+    public GuildRole(String guildId, String name, int permissions) {
+        this(guildId, name, permissions, 0);
     }
 
     /**
      * Creates a GuildRole with an existing ID (for database restoration).
      */
-    public GuildRole(String id, String guildId, String name, int permissions) {
+    public GuildRole(String id, String guildId, String name, int permissions, int priority) {
         this.id = Objects.requireNonNull(id, "ID cannot be null");
         this.guildId = Objects.requireNonNull(guildId, "Guild ID cannot be null");
         this.name = Objects.requireNonNull(name, "Name cannot be null");
         this.permissions = permissions;
+        this.priority = priority;
+    }
+
+    /**
+     * Creates a GuildRole with an existing ID and default priority (for database restoration).
+     */
+    public GuildRole(String id, String guildId, String name, int permissions) {
+        this(id, guildId, name, permissions, 0);
     }
 
     /**
@@ -68,6 +90,14 @@ public final class GuildRole {
 
     public void setPermissions(int permissions) {
         this.permissions = permissions;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 
     /**
@@ -103,6 +133,13 @@ public final class GuildRole {
         return id.hashCode();
     }
 
+    /**
+     * Checks if this role has higher priority than another role.
+     */
+    public boolean hasHigherPriorityThan(GuildRole other) {
+        return this.priority > other.priority;
+    }
+
     @Override
     public String toString() {
         return "GuildRole{" +
@@ -110,6 +147,7 @@ public final class GuildRole {
                 ", guildId='" + guildId + '\'' +
                 ", name='" + name + '\'' +
                 ", permissions=" + permissions +
+                ", priority=" + priority +
                 '}';
     }
 }

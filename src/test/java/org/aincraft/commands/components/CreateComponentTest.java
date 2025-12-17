@@ -2,6 +2,11 @@ package org.aincraft.commands.components;
 
 import org.aincraft.Guild;
 import org.aincraft.GuildService;
+import org.aincraft.ChunkKey;
+import org.aincraft.ClaimResult;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +35,9 @@ class CreateComponentTest {
 
     @Mock private GuildService guildService;
     @Mock private Player player;
+    @Mock private Location location;
+    @Mock private Chunk chunk;
+    @Mock private World world;
 
     private CreateComponent createComponent;
     private UUID playerId;
@@ -39,6 +47,13 @@ class CreateComponentTest {
         createComponent = new CreateComponent(guildService);
         playerId = UUID.randomUUID();
         when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getLocation()).thenReturn(location);
+        when(location.getChunk()).thenReturn(chunk);
+        when(location.getWorld()).thenReturn(world);
+        when(chunk.getX()).thenReturn(0);
+        when(chunk.getZ()).thenReturn(0);
+        when(chunk.getWorld()).thenReturn(world); // For ChunkKey.from(chunk)
+        when(world.getName()).thenReturn("world");
     }
 
     @Test
@@ -64,11 +79,14 @@ class CreateComponentTest {
             Guild guild = new Guild("TestGuild", null, playerId);
             when(guildService.createGuild(eq("TestGuild"), isNull(), eq(playerId)))
                     .thenReturn(guild);
+            when(guildService.claimChunk(eq(guild.getId()), eq(playerId), any(ChunkKey.class)))
+                    .thenReturn(ClaimResult.success());
 
             boolean result = createComponent.execute(player, new String[]{"create", "TestGuild"});
 
             assertThat(result).isTrue();
             verify(guildService).createGuild("TestGuild", null, playerId);
+            verify(guildService).claimChunk(eq(guild.getId()), eq(playerId), any(ChunkKey.class));
         }
 
         @Test
@@ -78,12 +96,15 @@ class CreateComponentTest {
             Guild guild = new Guild("TestGuild", "A cool guild", playerId);
             when(guildService.createGuild(eq("TestGuild"), eq("A cool guild"), eq(playerId)))
                     .thenReturn(guild);
+            when(guildService.claimChunk(eq(guild.getId()), eq(playerId), any(ChunkKey.class)))
+                    .thenReturn(ClaimResult.success());
 
             boolean result = createComponent.execute(player,
                     new String[]{"create", "TestGuild", "A", "cool", "guild"});
 
             assertThat(result).isTrue();
             verify(guildService).createGuild("TestGuild", "A cool guild", playerId);
+            verify(guildService).claimChunk(eq(guild.getId()), eq(playerId), any(ChunkKey.class));
         }
 
         @Test

@@ -63,11 +63,12 @@ public class ClaimComponent implements GuildCommand {
             return true;
         }
 
-        if (guildService.claimChunk(guild.getId(), player.getUniqueId(), chunk)) {
+        org.aincraft.ClaimResult result = guildService.claimChunk(guild.getId(), player.getUniqueId(), chunk);
+        if (result.isSuccess()) {
             player.sendMessage(MessageFormatter.deserialize("<green>Claimed chunk at <gold>" + chunk.x() + ", " + chunk.z() +
                     "</gold> for <gold>" + guild.getName() + "</gold></green>"));
         } else {
-            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Failed to claim chunk. You may lack CLAIM permission."));
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, result.getReason()));
         }
 
         return true;

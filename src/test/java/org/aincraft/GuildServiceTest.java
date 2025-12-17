@@ -236,9 +236,9 @@ class GuildServiceTest {
         void shouldAllowMemberToLeave() {
             when(guildRepository.findById(guild.getId())).thenReturn(Optional.of(guild));
 
-            boolean result = guildService.leaveGuild(guild.getId(), memberId);
+            LeaveResult result = guildService.leaveGuild(guild.getId(), memberId);
 
-            assertThat(result).isTrue();
+            assertThat(result.isSuccess()).isTrue();
             verify(playerGuildMapping).removePlayerFromGuild(memberId);
             verify(memberRepository).removeMember(guild.getId(), memberId);
             verify(memberRoleRepository).removeAllMemberRoles(guild.getId(), memberId);
@@ -249,9 +249,10 @@ class GuildServiceTest {
         void shouldPreventOwnerFromLeaving() {
             when(guildRepository.findById(guild.getId())).thenReturn(Optional.of(guild));
 
-            boolean result = guildService.leaveGuild(guild.getId(), ownerId);
+            LeaveResult result = guildService.leaveGuild(guild.getId(), ownerId);
 
-            assertThat(result).isFalse();
+            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.getStatus()).isEqualTo(LeaveResult.Status.OWNER_CANNOT_LEAVE);
             verify(playerGuildMapping, never()).removePlayerFromGuild(any());
         }
     }
@@ -367,35 +368,35 @@ class GuildServiceTest {
             when(chunkClaimRepository.getGuildChunks(guild.getId())).thenReturn(List.of(chunk));
             when(chunkClaimRepository.claim(newChunk, guild.getId(), ownerId)).thenReturn(true);
 
-            boolean result = guildService.claimChunk(guild.getId(), ownerId, newChunk);
+            ClaimResult result = guildService.claimChunk(guild.getId(), ownerId, newChunk);
 
-            assertThat(result).isTrue();
+            assertThat(result.isSuccess()).isTrue();
             verify(chunkClaimRepository).claim(newChunk, guild.getId(), ownerId);
         }
 
         @Test
-        @DisplayName("should return false when player lacks permission")
-        void shouldReturnFalseWhenPlayerLacksPermission() {
+        @DisplayName("should return NO_PERMISSION when player lacks permission")
+        void shouldReturnNoPermissionWhenPlayerLacksPermission() {
             when(guildRepository.findById(guild.getId())).thenReturn(Optional.of(guild));
             when(memberRoleRepository.getMemberRoleIds(guild.getId(), memberId)).thenReturn(Collections.emptyList());
 
-            boolean result = guildService.claimChunk(guild.getId(), memberId, chunk);
+            ClaimResult result = guildService.claimChunk(guild.getId(), memberId, chunk);
 
-            assertThat(result).isFalse();
+            assertThat(result.getStatus()).isEqualTo(ClaimResult.Status.NO_PERMISSION);
             verify(chunkClaimRepository, never()).claim(any(), anyString(), any());
         }
 
         @Test
-        @DisplayName("should prevent claiming non-adjacent chunks")
-        void shouldPreventClaimingNonAdjacentChunks() {
+        @DisplayName("should return NOT_ADJACENT when claiming non-adjacent chunks")
+        void shouldReturnNotAdjacentWhenClaimingNonAdjacentChunks() {
             when(guildRepository.findById(guild.getId())).thenReturn(Optional.of(guild));
             ChunkKey existingChunk = new ChunkKey("world", 0, 0);
             ChunkKey nonAdjacentChunk = new ChunkKey("world", 5, 5); // Far away
             when(chunkClaimRepository.getGuildChunks(guild.getId())).thenReturn(List.of(existingChunk));
 
-            boolean result = guildService.claimChunk(guild.getId(), ownerId, nonAdjacentChunk);
+            ClaimResult result = guildService.claimChunk(guild.getId(), ownerId, nonAdjacentChunk);
 
-            assertThat(result).isFalse();
+            assertThat(result.getStatus()).isEqualTo(ClaimResult.Status.NOT_ADJACENT);
             verify(chunkClaimRepository, never()).claim(any(), anyString(), any());
         }
 
@@ -410,9 +411,9 @@ class GuildServiceTest {
             when(chunkClaimRepository.getGuildChunks(guild.getId())).thenReturn(List.of(existingChunk));
             when(chunkClaimRepository.claim(adjacentChunk, guild.getId(), ownerId)).thenReturn(true);
 
-            boolean result = guildService.claimChunk(guild.getId(), ownerId, adjacentChunk);
+            ClaimResult result = guildService.claimChunk(guild.getId(), ownerId, adjacentChunk);
 
-            assertThat(result).isTrue();
+            assertThat(result.isSuccess()).isTrue();
             verify(chunkClaimRepository).claim(adjacentChunk, guild.getId(), ownerId);
         }
 
