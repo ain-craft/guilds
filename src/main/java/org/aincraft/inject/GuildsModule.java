@@ -27,6 +27,18 @@ import org.aincraft.subregion.SubregionService;
 import org.aincraft.subregion.SubregionTypeRegistry;
 import org.aincraft.subregion.RegionMovementTracker;
 import org.aincraft.subregion.RegionEntryNotifier;
+import org.aincraft.claim.ClaimMovementTracker;
+import org.aincraft.claim.ClaimEntryNotifier;
+import org.aincraft.multiblock.MultiblockRegistry;
+import org.aincraft.multiblock.MultiblockService;
+import org.aincraft.multiblock.MultiblockListener;
+import org.aincraft.vault.VaultRepository;
+import org.aincraft.vault.SQLiteVaultRepository;
+import org.aincraft.vault.VaultTransactionRepository;
+import org.aincraft.vault.SQLiteVaultTransactionRepository;
+import org.aincraft.vault.VaultService;
+import org.aincraft.vault.VaultHandler;
+import org.aincraft.vault.gui.VaultGUIListener;
 
 import java.io.File;
 
@@ -56,12 +68,28 @@ public class GuildsModule extends AbstractModule {
         bind(RegionMovementTracker.class).in(Singleton.class);
         bind(RegionEntryNotifier.class).in(Singleton.class);
 
+        // Claim tracking bindings
+        bind(ClaimMovementTracker.class).in(Singleton.class);
+        bind(ClaimEntryNotifier.class).in(Singleton.class);
+
         // Services
         bind(GuildService.class).in(Singleton.class);
         bind(GuildManager.class).in(Singleton.class);
 
         // Listeners
         bind(GuildProtectionListener.class).in(Singleton.class);
+
+        // Multiblock system
+        bind(MultiblockRegistry.class).in(Singleton.class);
+        bind(MultiblockService.class).in(Singleton.class);
+        bind(MultiblockListener.class).in(Singleton.class);
+
+        // Vault system
+        bind(VaultRepository.class).to(SQLiteVaultRepository.class).in(Singleton.class);
+        bind(VaultTransactionRepository.class).to(SQLiteVaultTransactionRepository.class).in(Singleton.class);
+        bind(VaultService.class).in(Singleton.class);
+        bind(VaultHandler.class).in(Singleton.class);
+        bind(VaultGUIListener.class).in(Singleton.class);
     }
 
     @Provides

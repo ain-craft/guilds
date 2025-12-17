@@ -36,7 +36,13 @@ public class SQLiteGuildRepository implements GuildRepository {
                 owner_id TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
                 max_members INTEGER NOT NULL,
-                members TEXT NOT NULL
+                members TEXT NOT NULL,
+                spawn_world TEXT,
+                spawn_x REAL,
+                spawn_y REAL,
+                spawn_z REAL,
+                spawn_yaw REAL,
+                spawn_pitch REAL
             );
             CREATE INDEX IF NOT EXISTS idx_guild_name ON guilds(name);
             """;
@@ -46,6 +52,24 @@ public class SQLiteGuildRepository implements GuildRepository {
             for (String sql : createTableSQL.split(";")) {
                 if (!sql.trim().isEmpty()) {
                     stmt.execute(sql.trim());
+                }
+            }
+
+            // Migration: Add spawn columns to existing tables
+            String[] migrations = {
+                "ALTER TABLE guilds ADD COLUMN spawn_world TEXT",
+                "ALTER TABLE guilds ADD COLUMN spawn_x REAL",
+                "ALTER TABLE guilds ADD COLUMN spawn_y REAL",
+                "ALTER TABLE guilds ADD COLUMN spawn_z REAL",
+                "ALTER TABLE guilds ADD COLUMN spawn_yaw REAL",
+                "ALTER TABLE guilds ADD COLUMN spawn_pitch REAL"
+            };
+
+            for (String migration : migrations) {
+                try {
+                    stmt.execute(migration);
+                } catch (SQLException e) {
+                    // Column likely already exists, ignore
                 }
             }
         } catch (SQLException e) {
@@ -73,7 +97,8 @@ public class SQLiteGuildRepository implements GuildRepository {
                 // Guild exists - UPDATE without modifying created_at (immutable field)
                 sql = """
                     UPDATE guilds
-                    SET name = ?, description = ?, owner_id = ?, max_members = ?, members = ?
+                    SET name = ?, description = ?, owner_id = ?, max_members = ?, members = ?,
+                        spawn_world = ?, spawn_x = ?, spawn_y = ?, spawn_z = ?, spawn_yaw = ?, spawn_pitch = ?
                     WHERE id = ?
                     """;
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -82,15 +107,22 @@ public class SQLiteGuildRepository implements GuildRepository {
                     pstmt.setString(3, guild.getOwnerId().toString());
                     pstmt.setInt(4, guild.getMaxMembers());
                     pstmt.setString(5, membersJson);
-                    pstmt.setString(6, guild.getId());
+                    pstmt.setString(6, guild.getSpawnWorld());
+                    pstmt.setObject(7, guild.getSpawnX());
+                    pstmt.setObject(8, guild.getSpawnY());
+                    pstmt.setObject(9, guild.getSpawnZ());
+                    pstmt.setObject(10, guild.getSpawnYaw());
+                    pstmt.setObject(11, guild.getSpawnPitch());
+                    pstmt.setString(12, guild.getId());
                     pstmt.executeUpdate();
                 }
             } else {
                 // New guild - INSERT with created_at
                 sql = """
                     INSERT INTO guilds
-                    (id, name, description, owner_id, created_at, max_members, members)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (id, name, description, owner_id, created_at, max_members, members,
+                     spawn_world, spawn_x, spawn_y, spawn_z, spawn_yaw, spawn_pitch)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """;
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, guild.getId());
@@ -100,6 +132,12 @@ public class SQLiteGuildRepository implements GuildRepository {
                     pstmt.setLong(5, guild.getCreatedAt());
                     pstmt.setInt(6, guild.getMaxMembers());
                     pstmt.setString(7, membersJson);
+                    pstmt.setString(8, guild.getSpawnWorld());
+                    pstmt.setObject(9, guild.getSpawnX());
+                    pstmt.setObject(10, guild.getSpawnY());
+                    pstmt.setObject(11, guild.getSpawnZ());
+                    pstmt.setObject(12, guild.getSpawnYaw());
+                    pstmt.setObject(13, guild.getSpawnPitch());
                     pstmt.executeUpdate();
                 }
             }
@@ -204,6 +242,9 @@ public class SQLiteGuildRepository implements GuildRepository {
         // Restore members via reflection (Guild doesn't expose member modification)
         restoreMembers(guild, membersJson);
 
+        // Restore spawn location if present
+        restoreSpawn(guild, rs);
+
         return guild;
     }
 
@@ -243,5 +284,20 @@ public class SQLiteGuildRepository implements GuildRepository {
         return Arrays.stream(membersJson.split(","))
             .map(UUID::fromString)
             .toList();
+    }
+
+    /**
+     * Restores spawn location from database row.
+     */
+    private void restoreSpawn(Guild guild, ResultSet rs) throws SQLException {
+        String spawnWorld = rs.getString("spawn_world");
+        if (spawnWorld != null) {
+            guild.setSpawnWorld(spawnWorld);
+            guild.setSpawnX(rs.getDouble("spawn_x"));
+            guild.setSpawnY(rs.getDouble("spawn_y"));
+            guild.setSpawnZ(rs.getDouble("spawn_z"));
+            guild.setSpawnYaw(rs.getFloat("spawn_yaw"));
+            guild.setSpawnPitch(rs.getFloat("spawn_pitch"));
+        }
     }
 }

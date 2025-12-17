@@ -7,7 +7,11 @@
       "Bash(git commit:*)",
       "Bash(git merge:*)",
       "Bash(git check-ignore:*)",
-      "Bash(./gradlew clean:*)"
+      "Bash(./gradlew clean:*)",
+      "mcp__claude-context__search_code",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(./gradlew test:*)"
     ],
     "deny": [],
     "ask": []

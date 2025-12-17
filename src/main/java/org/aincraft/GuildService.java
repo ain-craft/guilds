@@ -696,4 +696,100 @@ public class GuildService {
 
         return MemberPermissions.fromBitfield(computeEffectivePermissions(guildId, playerId));
     }
+
+    // ==================== Spawn Location Methods ====================
+
+    /**
+     * Sets the guild spawn location.
+     * Requires MANAGE_SPAWN permission and the location must be in claimed guild territory.
+     *
+     * @param guildId the guild ID
+     * @param playerId the player setting the spawn
+     * @param location the location to set as spawn
+     * @return true if spawn was set successfully, false otherwise
+     */
+    public boolean setGuildSpawn(String guildId, UUID playerId, org.bukkit.Location location) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+        Objects.requireNonNull(playerId, "Player ID cannot be null");
+        Objects.requireNonNull(location, "Location cannot be null");
+
+        if (!hasPermission(guildId, playerId, GuildPermission.MANAGE_SPAWN)) {
+            return false;
+        }
+
+        // Verify chunk is claimed by this guild
+        org.bukkit.Chunk chunk = location.getChunk();
+        ChunkKey chunkKey = new ChunkKey(location.getWorld().getName(), chunk.getX(), chunk.getZ());
+        Guild owner = getChunkOwner(chunkKey);
+        if (owner == null || !owner.getId().equals(guildId)) {
+            return false;
+        }
+
+        Optional<Guild> guildOpt = guildRepository.findById(guildId);
+        if (guildOpt.isEmpty()) {
+            return false;
+        }
+
+        Guild guild = guildOpt.get();
+        guild.setSpawn(location);
+        guildRepository.save(guild);
+        return true;
+    }
+
+    /**
+     * Clears the guild spawn location.
+     * Requires MANAGE_SPAWN permission.
+     *
+     * @param guildId the guild ID
+     * @param playerId the player clearing the spawn
+     * @return true if spawn was cleared successfully, false otherwise
+     */
+    public boolean clearGuildSpawn(String guildId, UUID playerId) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+        Objects.requireNonNull(playerId, "Player ID cannot be null");
+
+        if (!hasPermission(guildId, playerId, GuildPermission.MANAGE_SPAWN)) {
+            return false;
+        }
+
+        Optional<Guild> guildOpt = guildRepository.findById(guildId);
+        if (guildOpt.isEmpty()) {
+            return false;
+        }
+
+        Guild guild = guildOpt.get();
+        guild.clearSpawn();
+        guildRepository.save(guild);
+        return true;
+    }
+
+    /**
+     * Gets the guild spawn location as a Bukkit Location.
+     *
+     * @param guildId the guild ID
+     * @return the spawn location, or null if no spawn is set or world is not loaded
+     */
+    public org.bukkit.Location getGuildSpawnLocation(String guildId) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+
+        Guild guild = getGuildById(guildId);
+        if (guild == null || !guild.hasSpawn()) {
+            return null;
+        }
+
+        org.bukkit.World world = org.bukkit.Bukkit.getWorld(guild.getSpawnWorld());
+        if (world == null) {
+            return null;
+        }
+
+        org.bukkit.Location location = new org.bukkit.Location(
+            world,
+            guild.getSpawnX(),
+            guild.getSpawnY(),
+            guild.getSpawnZ(),
+            guild.getSpawnYaw(),
+            guild.getSpawnPitch()
+        );
+        return location;
+    }
 }

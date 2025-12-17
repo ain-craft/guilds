@@ -17,6 +17,12 @@ public final class Guild {
     private final List<UUID> members;
     private final long createdAt;
     private int maxMembers;
+    private String spawnWorld;
+    private Double spawnX;
+    private Double spawnY;
+    private Double spawnZ;
+    private Float spawnYaw;
+    private Float spawnPitch;
 
     /**
      * Creates a new Guild with the given parameters.
@@ -333,6 +339,151 @@ public final class Guild {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    /**
+     * Checks if this guild has a spawn location set.
+     *
+     * @return true if spawn is set, false otherwise
+     */
+    public boolean hasSpawn() {
+        return spawnWorld != null;
+    }
+
+    /**
+     * Sets the spawn location for this guild from a Bukkit Location.
+     *
+     * @param location the location to set as spawn (cannot be null)
+     * @throws IllegalArgumentException if location is null
+     */
+    public void setSpawn(org.bukkit.Location location) {
+        Objects.requireNonNull(location, "Location cannot be null");
+        this.spawnWorld = location.getWorld().getName();
+        this.spawnX = location.getX();
+        this.spawnY = location.getY();
+        this.spawnZ = location.getZ();
+        this.spawnYaw = (float) location.getYaw();
+        this.spawnPitch = (float) location.getPitch();
+    }
+
+    /**
+     * Clears the spawn location for this guild.
+     */
+    public void clearSpawn() {
+        this.spawnWorld = null;
+        this.spawnX = null;
+        this.spawnY = null;
+        this.spawnZ = null;
+        this.spawnYaw = null;
+        this.spawnPitch = null;
+    }
+
+    /**
+     * Gets the spawn world name.
+     *
+     * @return the world name, or null if no spawn set
+     */
+    public String getSpawnWorld() {
+        return spawnWorld;
+    }
+
+    /**
+     * Sets the spawn world name.
+     *
+     * @param spawnWorld the world name
+     */
+    public void setSpawnWorld(String spawnWorld) {
+        this.spawnWorld = spawnWorld;
+    }
+
+    /**
+     * Gets the spawn X coordinate.
+     *
+     * @return the X coordinate, or null if no spawn set
+     */
+    public Double getSpawnX() {
+        return spawnX;
+    }
+
+    /**
+     * Sets the spawn X coordinate.
+     *
+     * @param spawnX the X coordinate
+     */
+    public void setSpawnX(Double spawnX) {
+        this.spawnX = spawnX;
+    }
+
+    /**
+     * Gets the spawn Y coordinate.
+     *
+     * @return the Y coordinate, or null if no spawn set
+     */
+    public Double getSpawnY() {
+        return spawnY;
+    }
+
+    /**
+     * Sets the spawn Y coordinate.
+     *
+     * @param spawnY the Y coordinate
+     */
+    public void setSpawnY(Double spawnY) {
+        this.spawnY = spawnY;
+    }
+
+    /**
+     * Gets the spawn Z coordinate.
+     *
+     * @return the Z coordinate, or null if no spawn set
+     */
+    public Double getSpawnZ() {
+        return spawnZ;
+    }
+
+    /**
+     * Sets the spawn Z coordinate.
+     *
+     * @param spawnZ the Z coordinate
+     */
+    public void setSpawnZ(Double spawnZ) {
+        this.spawnZ = spawnZ;
+    }
+
+    /**
+     * Gets the spawn yaw (rotation).
+     *
+     * @return the yaw, or null if no spawn set
+     */
+    public Float getSpawnYaw() {
+        return spawnYaw;
+    }
+
+    /**
+     * Sets the spawn yaw.
+     *
+     * @param spawnYaw the yaw value
+     */
+    public void setSpawnYaw(Float spawnYaw) {
+        this.spawnYaw = spawnYaw;
+    }
+
+    /**
+     * Gets the spawn pitch (vertical rotation).
+     *
+     * @return the pitch, or null if no spawn set
+     */
+    public Float getSpawnPitch() {
+        return spawnPitch;
+    }
+
+    /**
+     * Sets the spawn pitch.
+     *
+     * @param spawnPitch the pitch value
+     */
+    public void setSpawnPitch(Float spawnPitch) {
+        this.spawnPitch = spawnPitch;
     }
 
     /**

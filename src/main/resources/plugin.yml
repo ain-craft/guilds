@@ -6,12 +6,6 @@ description: A comprehensive guild system for Minecraft servers
 author: Ainecraft
 website: https://github.com/aincraft
 
-commands:
-  g:
-    description: Guild management commands
-    usage: /g <create|join|leave|delete|kick|info|list|claim|unclaim [all]|map [size]|role|region>
-    permission: guilds.use
-
 permissions:
   guilds.use:
     description: Allow use of guild commands
@@ -49,6 +43,12 @@ permissions:
   guilds.map:
     description: Allow viewing guild map
     default: true
+  guilds.spawn:
+    description: Allow teleporting to guild spawn
+    default: true
+  guilds.setspawn:
+    description: Allow setting guild spawn
+    default: true
   guilds.admin:
     description: All guild permissions
     children:
@@ -64,4 +64,6 @@ permissions:
       - guilds.unclaim
       - guilds.map
       - guilds.role
+      - guilds.spawn
+      - guilds.setspawn
     default: op

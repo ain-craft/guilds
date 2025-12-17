@@ -13,7 +13,10 @@ public enum GuildPermission {
     INVITE(1 << 5),         // 32
     KICK(1 << 6),           // 64
     MANAGE_ROLES(1 << 7),   // 128
-    MANAGE_REGIONS(1 << 8); // 256
+    MANAGE_REGIONS(1 << 8), // 256
+    VAULT_DEPOSIT(1 << 9),  // 512
+    VAULT_WITHDRAW(1 << 10), // 1024
+    MANAGE_SPAWN(1 << 11);   // 2048
 
     private final int bit;
 

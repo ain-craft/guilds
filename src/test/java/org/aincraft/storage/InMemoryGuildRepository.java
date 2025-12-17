@@ -1,0 +1,61 @@
+package org.aincraft.storage;
+
+import org.aincraft.Guild;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * In-memory implementation of GuildRepository for testing.
+ * Thread-safe implementation using ConcurrentHashMap.
+ */
+public class InMemoryGuildRepository implements GuildRepository {
+
+    private final Map<String, Guild> guildsById = new ConcurrentHashMap<>();
+    private final Map<String, Guild> guildsByName = new ConcurrentHashMap<>();
+
+    @Override
+    public void save(Guild guild) {
+        Objects.requireNonNull(guild, "Guild cannot be null");
+        guildsById.put(guild.getId(), guild);
+        guildsByName.put(guild.getName().toLowerCase(), guild);
+    }
+
+    @Override
+    public void delete(String guildId) {
+        Guild guild = guildsById.remove(guildId);
+        if (guild != null) {
+            guildsByName.remove(guild.getName().toLowerCase());
+        }
+    }
+
+    @Override
+    public Optional<Guild> findById(String guildId) {
+        return Optional.ofNullable(guildsById.get(guildId));
+    }
+
+    @Override
+    public Optional<Guild> findByName(String name) {
+        return Optional.ofNullable(guildsByName.get(name.toLowerCase()));
+    }
+
+    @Override
+    public List<Guild> findAll() {
+        return new ArrayList<>(guildsById.values());
+    }
+
+    /**
+     * Clears all stored guilds. Useful for test cleanup.
+     */
+    public void clear() {
+        guildsById.clear();
+        guildsByName.clear();
+    }
+
+    /**
+     * Returns the number of stored guilds.
+     */
+    public int size() {
+        return guildsById.size();
+    }
+}
