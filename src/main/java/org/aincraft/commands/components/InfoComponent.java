@@ -115,8 +115,8 @@ public class InfoComponent implements GuildCommand {
             header.append("<gold>_");
         }
         header.append("<yellow>o<gold>0<dark_gray>o");
-
         player.sendMessage(MessageFormatter.deserialize(header.toString()));
+        player.sendMessage(Component.newline());
 
         // Description if exists
         if (guild.getDescription() != null && !guild.getDescription().isEmpty()) {

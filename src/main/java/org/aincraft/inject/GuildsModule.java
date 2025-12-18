@@ -267,7 +267,6 @@ public class GuildsModule extends AbstractModule {
         bind(BuffCategoryRegistry.class).in(Singleton.class);
         bind(BuffApplicationService.class).in(Singleton.class);
         bind(QuestProgressListener.class).in(Singleton.class);
-        bind(TerritoryBuffListener.class).in(Singleton.class);
         bind(ProjectGUIListener.class).in(Singleton.class);
     }
 

@@ -169,7 +169,7 @@ public class ProjectRegistry {
                 "Experience Boost I",
                 "Increases guild XP gain by 25%",
                 1,
-                BuffType.ECONOMY,
+                BuffType.GLOBAL,
                 new BuffDefinition(BuffCategory.XP_MULTIPLIER, 1.25, "25% XP Boost"),
                 List.of(
                         new QuestRequirement("xp1_kill_zombies", QuestType.KILL_MOB, "ZOMBIE", 500, "Kill 500 Zombies"),

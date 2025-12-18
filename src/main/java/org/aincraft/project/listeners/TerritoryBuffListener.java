@@ -18,9 +18,10 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import java.util.Objects;
 
 /**
- * Deprecated: Logic has been moved to individual handler implementations.
- * This class is kept for backward compatibility and should not be used for new code.
- * Use CropGrowthBuffHandler and ProtectionBuffHandler instead.
+ * Deprecated: This listener is no longer registered or used by the plugin.
+ * The buff system has been transitioned to a query-based model using BuffApplicationService
+ * instead of event-based handlers. External plugins should use BuffApplicationService to
+ * query active buffs instead of relying on event-based application.
  */
 @Deprecated
 @Singleton
