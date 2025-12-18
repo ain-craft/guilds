@@ -4,6 +4,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.aincraft.Guild;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
@@ -14,6 +18,7 @@ import org.aincraft.subregion.RegionPermissionService;
 import org.aincraft.subregion.RegionRole;
 import org.aincraft.subregion.RegionTypeLimit;
 import org.aincraft.subregion.RegionTypeLimitRepository;
+import org.aincraft.subregion.RegionVisualizer;
 import org.aincraft.subregion.SelectionManager;
 import org.aincraft.subregion.Subregion;
 import org.aincraft.subregion.SubregionService;
@@ -35,16 +40,19 @@ public class RegionComponent implements GuildCommand {
     private final SubregionTypeRegistry typeRegistry;
     private final RegionPermissionService regionPermissionService;
     private final RegionTypeLimitRepository limitRepository;
+    private final RegionVisualizer regionVisualizer;
 
     public RegionComponent(GuildService guildService, SubregionService subregionService,
                            SelectionManager selectionManager, SubregionTypeRegistry typeRegistry,
-                           RegionPermissionService regionPermissionService, RegionTypeLimitRepository limitRepository) {
+                           RegionPermissionService regionPermissionService, RegionTypeLimitRepository limitRepository,
+                           RegionVisualizer regionVisualizer) {
         this.guildService = guildService;
         this.subregionService = subregionService;
         this.selectionManager = selectionManager;
         this.typeRegistry = typeRegistry;
         this.regionPermissionService = regionPermissionService;
         this.limitRepository = limitRepository;
+        this.regionVisualizer = regionVisualizer;
     }
 
     @Override
@@ -84,6 +92,7 @@ public class RegionComponent implements GuildCommand {
             case "delete" -> handleDelete(player, args);
             case "list" -> handleList(player);
             case "info" -> handleInfo(player, args);
+            case "visualize", "show" -> handleVisualize(player, args);
             case "types" -> handleTypes(player);
             case "settype" -> handleSetType(player, args);
             case "addowner" -> handleAddOwner(player, args);
@@ -308,18 +317,77 @@ public class RegionComponent implements GuildCommand {
         }
 
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Guild Regions", " (" + regions.size() + ")"));
+        player.sendMessage(MessageFormatter.deserialize("<gray><italic>Hover over a region to visualize its boundaries</italic></gray>"));
+
         for (Subregion region : regions) {
             String typeBadge = "";
             if (region.getType() != null) {
                 String displayName = typeRegistry.getType(region.getType())
                         .map(SubregionType::getDisplayName)
                         .orElse(region.getType());
-                typeBadge = "<yellow>[" + displayName.toUpperCase() + "]</yellow> ";
+                typeBadge = "[" + displayName.toUpperCase() + "] ";
             }
-            player.sendMessage(MessageFormatter.deserialize(
-                    "<gray>• " + typeBadge + "<gold>" + region.getName() + "</gold> - " +
-                    region.getWorld() + " (" + region.getVolume() + " blocks)</gray>"));
+
+            // Build hover text with region info
+            Component hoverText = Component.text()
+                    .append(Component.text("Click to visualize boundaries\n", NamedTextColor.AQUA))
+                    .append(Component.text("Shift+Click to view full info\n\n", NamedTextColor.GREEN))
+                    .append(Component.text("World: ", NamedTextColor.GRAY))
+                    .append(Component.text(region.getWorld(), NamedTextColor.YELLOW))
+                    .append(Component.text("\nVolume: ", NamedTextColor.GRAY))
+                    .append(Component.text(region.getVolume() + " blocks", NamedTextColor.YELLOW))
+                    .append(Component.text("\nPosition: ", NamedTextColor.GRAY))
+                    .append(Component.text(String.format("(%d, %d, %d) to (%d, %d, %d)",
+                            region.getMin().getBlockX(), region.getMin().getBlockY(), region.getMin().getBlockZ(),
+                            region.getMax().getBlockX(), region.getMax().getBlockY(), region.getMax().getBlockZ()),
+                            NamedTextColor.YELLOW))
+                    .build();
+
+            // Create clickable component
+            Component regionComponent = Component.text()
+                    .append(Component.text("• ", NamedTextColor.GRAY))
+                    .append(Component.text(typeBadge, NamedTextColor.YELLOW))
+                    .append(Component.text(region.getName(), NamedTextColor.GOLD)
+                            .hoverEvent(HoverEvent.showText(hoverText))
+                            .clickEvent(ClickEvent.runCommand("/g region visualize " + region.getName())))
+                    .append(Component.text(" - " + region.getWorld() + " (" + region.getVolume() + " blocks)", NamedTextColor.GRAY))
+                    .build();
+
+            player.sendMessage(regionComponent);
         }
+
+        return true;
+    }
+
+    private boolean handleVisualize(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Usage: /g region visualize <name>"));
+            return true;
+        }
+
+        Guild guild = guildService.getPlayerGuild(player.getUniqueId());
+        if (guild == null) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "You are not in a guild"));
+            return true;
+        }
+
+        String regionName = args[2];
+        Optional<Subregion> regionOpt = subregionService.getSubregionByName(guild.getId(), regionName);
+
+        if (regionOpt.isEmpty()) {
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR, "Region not found: " + regionName));
+            return true;
+        }
+
+        Subregion region = regionOpt.get();
+
+        // Start visualization
+        regionVisualizer.visualizeRegion(player, region);
+
+        player.sendMessage(MessageFormatter.deserialize(
+                "<green>Visualizing region <gold>" + regionName + "</gold> for 10 seconds...</green>"));
+        player.sendMessage(MessageFormatter.deserialize(
+                "<gray>Corners shown with <white>white particles</white>, edges with <aqua>cyan particles</aqua>, center with <green>green particles</green></gray>"));
 
         return true;
     }

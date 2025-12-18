@@ -4,23 +4,26 @@ import java.util.Objects;
 import org.aincraft.GuildPermission;
 import org.aincraft.GuildService;
 import org.aincraft.commands.MessageFormatter;
+import org.aincraft.progression.storage.ProgressionLogRepository;
 import org.aincraft.vault.VaultService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 /**
  * Parent coordinator for /g log commands.
- * Routes to claim or vault subcomponents and enforces VIEW_LOGS permission.
+ * Routes to claim, vault, or progression subcomponents and enforces VIEW_LOGS permission.
  */
 public class LogComponent {
     private final GuildService guildService;
     private final ClaimLogSubcomponent claimLogSubcomponent;
     private final VaultLogSubcomponent vaultLogSubcomponent;
+    private final ProgressionLogSubcomponent progressionLogSubcomponent;
 
-    public LogComponent(GuildService guildService, VaultService vaultService) {
+    public LogComponent(GuildService guildService, VaultService vaultService, ProgressionLogRepository progressionLogRepository) {
         this.guildService = Objects.requireNonNull(guildService, "Guild service cannot be null");
         this.claimLogSubcomponent = new ClaimLogSubcomponent(guildService);
         this.vaultLogSubcomponent = new VaultLogSubcomponent(vaultService);
+        this.progressionLogSubcomponent = new ProgressionLogSubcomponent(guildService, progressionLogRepository);
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -52,6 +55,7 @@ public class LogComponent {
         return switch (subCommand) {
             case "claim" -> claimLogSubcomponent.execute(player, args);
             case "vault" -> vaultLogSubcomponent.execute(player, args);
+            case "progression", "xp" -> progressionLogSubcomponent.execute(player, args);
             default -> {
                 showHelp(player);
                 yield true;
@@ -63,5 +67,6 @@ public class LogComponent {
         player.sendMessage(MessageFormatter.format(MessageFormatter.HEADER, "Log Commands", ""));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g log claim [page]", "View chunk claim/unclaim history"));
         player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g log vault [page]", "View vault transaction history"));
+        player.sendMessage(MessageFormatter.format(MessageFormatter.USAGE, "/g log progression [page]", "View XP and level progression history"));
     }
 }

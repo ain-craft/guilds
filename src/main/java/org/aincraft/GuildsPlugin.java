@@ -3,6 +3,7 @@ package org.aincraft;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -49,7 +50,6 @@ import org.aincraft.commands.components.ToggleComponent;
 import org.aincraft.commands.components.UnclaimComponent;
 import org.aincraft.commands.components.GuildChatComponent;
 import org.aincraft.commands.components.AllyChatComponent;
-import org.aincraft.commands.components.LevelComponent;
 import org.aincraft.commands.components.LevelUpComponent;
 import org.aincraft.chat.GuildChatListener;
 import org.aincraft.inject.GuildsModule;
@@ -127,7 +127,6 @@ public class GuildsPlugin extends JavaPlugin {
     private GuildChatComponent guildChatComponent;
     private AllyChatComponent allyChatComponent;
     private AdminComponent adminComponent;
-    private LevelComponent levelComponent;
     private LevelUpComponent levelUpComponent;
 
     @Override
@@ -212,11 +211,13 @@ public class GuildsPlugin extends JavaPlugin {
         SelectionManager selectionManager = injector.getInstance(SelectionManager.class);
         RegionPermissionService regionPermissionService = injector.getInstance(RegionPermissionService.class);
         org.aincraft.subregion.RegionTypeLimitRepository limitRepository = injector.getInstance(org.aincraft.subregion.RegionTypeLimitRepository.class);
-        regionComponent = new RegionComponent(guildService, subregionService, selectionManager, typeRegistry, regionPermissionService, limitRepository);
+        org.aincraft.subregion.RegionVisualizer regionVisualizer = injector.getInstance(org.aincraft.subregion.RegionVisualizer.class);
+        regionComponent = new RegionComponent(guildService, subregionService, selectionManager, typeRegistry, regionPermissionService, limitRepository, regionVisualizer);
 
         VaultService vaultService = injector.getInstance(VaultService.class);
+        org.aincraft.progression.storage.ProgressionLogRepository progressionLogRepository = injector.getInstance(org.aincraft.progression.storage.ProgressionLogRepository.class);
         vaultComponent = new VaultComponent(vaultService);
-        logComponent = new LogComponent(guildService, vaultService);
+        logComponent = new LogComponent(guildService, vaultService, progressionLogRepository);
 
         allyComponent = injector.getInstance(AllyComponent.class);
         enemyComponent = injector.getInstance(EnemyComponent.class);
@@ -224,7 +225,6 @@ public class GuildsPlugin extends JavaPlugin {
         guildChatComponent = injector.getInstance(GuildChatComponent.class);
         allyChatComponent = injector.getInstance(AllyChatComponent.class);
         adminComponent = injector.getInstance(AdminComponent.class);
-        levelComponent = injector.getInstance(LevelComponent.class);
         levelUpComponent = injector.getInstance(LevelUpComponent.class);
     }
 
@@ -640,34 +640,14 @@ public class GuildsPlugin extends JavaPlugin {
                             neutralComponent.execute(context.getSource().getSender(), new String[]{"neutral", guildName});
                             return 1;
                         })))
-                .then(Commands.literal("level")
+                .then(Commands.literal("upgrade")
                     .executes(context -> {
-                        levelComponent.execute(context.getSource().getSender(), new String[]{"level", "info"});
-                        return 1;
-                    })
-                    .then(Commands.literal("info")
-                        .executes(context -> {
-                            levelComponent.execute(context.getSource().getSender(), new String[]{"level", "info"});
-                            return 1;
-                        }))
-                    .then(Commands.literal("top")
-                        .executes(context -> {
-                            levelComponent.execute(context.getSource().getSender(), new String[]{"level", "top"});
-                            return 1;
-                        }))
-                    .then(Commands.literal("stats")
-                        .executes(context -> {
-                            levelComponent.execute(context.getSource().getSender(), new String[]{"level", "stats"});
-                            return 1;
-                        })))
-                .then(Commands.literal("levelup")
-                    .executes(context -> {
-                        levelUpComponent.execute(context.getSource().getSender(), new String[]{"levelup"});
+                        levelUpComponent.execute(context.getSource().getSender(), new String[]{"upgrade"});
                         return 1;
                     })
                     .then(Commands.literal("confirm")
                         .executes(context -> {
-                            levelUpComponent.execute(context.getSource().getSender(), new String[]{"levelup", "confirm"});
+                            levelUpComponent.execute(context.getSource().getSender(), new String[]{"upgrade", "confirm"});
                             return 1;
                         })))
                 .then(registerAdminCommands())
@@ -720,6 +700,86 @@ public class GuildsPlugin extends JavaPlugin {
                     adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "bypass"});
                     return 1;
                 }))
+            .then(Commands.literal("set")
+                .then(Commands.literal("level")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .then(Commands.argument("level", IntegerArgumentType.integer(1))
+                            .executes(context -> {
+                                String guildName = StringArgumentType.getString(context, "guildName");
+                                int level = IntegerArgumentType.getInteger(context, "level");
+                                adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "set", "level", guildName, String.valueOf(level)});
+                                return 1;
+                            }))))
+                .then(Commands.literal("xp")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .then(Commands.argument("amount", LongArgumentType.longArg(0))
+                            .executes(context -> {
+                                String guildName = StringArgumentType.getString(context, "guildName");
+                                long amount = LongArgumentType.getLong(context, "amount");
+                                adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "set", "xp", guildName, String.valueOf(amount)});
+                                return 1;
+                            })))))
+            .then(Commands.literal("add")
+                .then(Commands.literal("level")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .then(Commands.argument("levels", IntegerArgumentType.integer(1))
+                            .executes(context -> {
+                                String guildName = StringArgumentType.getString(context, "guildName");
+                                int levels = IntegerArgumentType.getInteger(context, "levels");
+                                adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "add", "level", guildName, String.valueOf(levels)});
+                                return 1;
+                            }))))
+                .then(Commands.literal("xp")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .then(Commands.argument("amount", LongArgumentType.longArg(1))
+                            .executes(context -> {
+                                String guildName = StringArgumentType.getString(context, "guildName");
+                                long amount = LongArgumentType.getLong(context, "amount");
+                                adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "add", "xp", guildName, String.valueOf(amount)});
+                                return 1;
+                            })))))
+            .then(Commands.literal("remove")
+                .then(Commands.literal("level")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .then(Commands.argument("levels", IntegerArgumentType.integer(1))
+                            .executes(context -> {
+                                String guildName = StringArgumentType.getString(context, "guildName");
+                                int levels = IntegerArgumentType.getInteger(context, "levels");
+                                adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "remove", "level", guildName, String.valueOf(levels)});
+                                return 1;
+                            }))))
+                .then(Commands.literal("xp")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .then(Commands.argument("amount", LongArgumentType.longArg(1))
+                            .executes(context -> {
+                                String guildName = StringArgumentType.getString(context, "guildName");
+                                long amount = LongArgumentType.getLong(context, "amount");
+                                adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "remove", "xp", guildName, String.valueOf(amount)});
+                                return 1;
+                            })))))
+            .then(Commands.literal("reset")
+                .then(Commands.literal("level")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .executes(context -> {
+                            String guildName = StringArgumentType.getString(context, "guildName");
+                            adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "reset", "level", guildName});
+                            return 1;
+                        })))
+                .then(Commands.literal("xp")
+                    .then(Commands.argument("guildName", StringArgumentType.word())
+                        .suggests(this::suggestGuildNames)
+                        .executes(context -> {
+                            String guildName = StringArgumentType.getString(context, "guildName");
+                            adminComponent.execute(context.getSource().getSender(), new String[]{"admin", "reset", "xp", guildName});
+                            return 1;
+                        }))))
             .build();
     }
 
@@ -820,6 +880,14 @@ public class GuildsPlugin extends JavaPlugin {
                     .executes(context -> {
                         String name = StringArgumentType.getString(context, "name");
                         regionComponent.execute(context.getSource().getSender(), new String[]{"region", "info", name});
+                        return 1;
+                    })))
+            .then(Commands.literal("visualize")
+                .then(Commands.argument("name", StringArgumentType.word())
+                    .suggests(this::suggestRegionNames)
+                    .executes(context -> {
+                        String name = StringArgumentType.getString(context, "name");
+                        regionComponent.execute(context.getSource().getSender(), new String[]{"region", "visualize", name});
                         return 1;
                     })))
             .then(Commands.literal("types")
@@ -977,6 +1045,17 @@ public class GuildsPlugin extends JavaPlugin {
                     .executes(context -> {
                         int page = IntegerArgumentType.getInteger(context, "page");
                         logComponent.execute(context.getSource().getSender(), new String[]{"log", "vault", String.valueOf(page)});
+                        return 1;
+                    })))
+            .then(Commands.literal("progression")
+                .executes(context -> {
+                    logComponent.execute(context.getSource().getSender(), new String[]{"log", "progression"});
+                    return 1;
+                })
+                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                    .executes(context -> {
+                        int page = IntegerArgumentType.getInteger(context, "page");
+                        logComponent.execute(context.getSource().getSender(), new String[]{"log", "progression", String.valueOf(page)});
                         return 1;
                     })))
             .build();

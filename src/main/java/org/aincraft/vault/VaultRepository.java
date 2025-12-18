@@ -43,4 +43,21 @@ public interface VaultRepository {
      * Checks if a guild already has a vault.
      */
     boolean existsForGuild(String guildId);
+
+    /**
+     * Gets the current item at a specific slot.
+     * Used for validating slot state before operations.
+     */
+    ItemStack getSlot(String vaultId, int slot);
+
+    /**
+     * Atomically updates a single slot if it matches expected state.
+     * Returns true if update succeeded, false if slot state changed.
+     */
+    boolean compareAndSetSlot(String vaultId, int slot, ItemStack expected, ItemStack newItem);
+
+    /**
+     * Gets fresh contents from database (bypasses any caching).
+     */
+    ItemStack[] getFreshContents(String vaultId);
 }

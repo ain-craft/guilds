@@ -91,6 +91,7 @@ import org.aincraft.subregion.SQLiteSubregionRepository;
 import org.aincraft.subregion.SelectionManager;
 import org.aincraft.subregion.SelectionVisualizer;
 import org.aincraft.subregion.SelectionVisualizerListener;
+import org.aincraft.subregion.RegionVisualizer;
 import org.aincraft.subregion.SubregionRepository;
 import org.aincraft.subregion.SubregionService;
 import org.aincraft.subregion.SubregionTypeRegistry;
@@ -105,9 +106,12 @@ import org.aincraft.progression.ProgressionConfig;
 import org.aincraft.progression.ProgressionService;
 import org.aincraft.progression.storage.GuildProgressionRepository;
 import org.aincraft.progression.storage.SQLiteGuildProgressionRepository;
+import org.aincraft.progression.storage.ProgressionLogRepository;
+import org.aincraft.progression.storage.SQLiteProgressionLogRepository;
 import org.aincraft.progression.listeners.ProgressionXpListener;
 import org.aincraft.progression.listeners.ProgressionPlaytimeTask;
-import org.aincraft.commands.components.LevelComponent;
+import org.aincraft.progression.MaterialRegistry;
+import org.aincraft.progression.ProceduralCostGenerator;
 import org.aincraft.commands.components.LevelUpComponent;
 
 public class GuildsModule extends AbstractModule {
@@ -135,6 +139,7 @@ public class GuildsModule extends AbstractModule {
         bind(SubregionTypeRegistry.class).in(Singleton.class);
         bind(SubregionService.class).in(Singleton.class);
         bind(SelectionVisualizer.class).in(Singleton.class);
+        bind(RegionVisualizer.class).in(Singleton.class);
         bind(SelectionManager.class).in(Singleton.class);
         bind(SelectionVisualizerListener.class).in(Singleton.class);
         bind(RegionMovementTracker.class).in(Singleton.class);
@@ -199,10 +204,13 @@ public class GuildsModule extends AbstractModule {
 
         // Progression system
         bind(GuildProgressionRepository.class).to(SQLiteGuildProgressionRepository.class).in(Singleton.class);
+        bind(ProgressionLogRepository.class).to(SQLiteProgressionLogRepository.class).in(Singleton.class);
         bind(ProgressionService.class).in(Singleton.class);
         bind(ProgressionConfig.class).in(Singleton.class);
         bind(ProgressionXpListener.class).in(Singleton.class);
         bind(ProgressionPlaytimeTask.class).in(Singleton.class);
+        bind(MaterialRegistry.class).in(Singleton.class);
+        bind(ProceduralCostGenerator.class).in(Singleton.class);
 
         // Command components
         bind(CreateComponent.class).in(Singleton.class);
@@ -234,7 +242,6 @@ public class GuildsModule extends AbstractModule {
         bind(GuildChatComponent.class).in(Singleton.class);
         bind(AllyChatComponent.class).in(Singleton.class);
         bind(AdminComponent.class).in(Singleton.class);
-        bind(LevelComponent.class).in(Singleton.class);
         bind(LevelUpComponent.class).in(Singleton.class);
     }
 

@@ -60,15 +60,16 @@ progression:
     base-max-chunks: 50
 
   # Material costs for leveling up
-  material-costs:
-    # Cost multiplier per level (formula: base-amount * (cost-multiplier ^ (level-1)))
-    cost-multiplier: 1.1
-    materials:
-      DIAMOND:
-        base-amount: 10
-      EMERALD:
-        base-amount: 5
-      GOLD_INGOT:
-        base-amount: 20
-      IRON_INGOT:
-        base-amount: 64
+  # Costs are procedurally generated per guild using weighted probability selection
+  # Materials are defined via API with level ranges and probability curves
+  # Defaults include:
+  #   - Common materials (levels 1-50): Iron, Coal, Copper, Cobblestone, etc.
+  #   - Uncommon materials (levels 20-75): Gold, Redstone, Lapis, Quartz, etc.
+  #   - Rare materials (levels 40-100): Diamond, Emerald, Ender Pearl, etc.
+  #   - Very rare materials (levels 70-100): Netherite, Nether Star, etc.
+  #
+  # Use the MaterialRegistry API to register custom materials with:
+  #   - minLevel: Minimum guild level for material to appear
+  #   - maxLevel: Maximum guild level for material to appear
+  #   - baseAmount: Base quantity before exponential scaling
+  #   - probability: Selection weight (higher = more likely)
