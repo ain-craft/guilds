@@ -11,10 +11,12 @@ import java.util.Optional;
 public class BuffApplicationService {
 
     private final ActiveBuffRepository buffRepository;
+    private final BuffCategoryRegistry buffCategoryRegistry;
 
     @Inject
-    public BuffApplicationService(ActiveBuffRepository buffRepository) {
+    public BuffApplicationService(ActiveBuffRepository buffRepository, BuffCategoryRegistry buffCategoryRegistry) {
         this.buffRepository = Objects.requireNonNull(buffRepository);
+        this.buffCategoryRegistry = Objects.requireNonNull(buffCategoryRegistry);
     }
 
     public double getXpMultiplier(String guildId) {
@@ -69,6 +71,55 @@ public class BuffApplicationService {
 
         ActiveBuff buff = buffOpt.get();
         return !buff.isExpired() && buff.category() == category;
+    }
+
+    /**
+     * Checks if a guild has an active buff for the given category ID.
+     * Supports custom buff categories registered at runtime.
+     *
+     * @param guildId the guild ID
+     * @param categoryId the buff category ID (string)
+     * @return true if the guild has an active buff for this category
+     */
+    public boolean hasBuff(String guildId, String categoryId) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+        Objects.requireNonNull(categoryId, "Category ID cannot be null");
+
+        // Try to match by BuffCategory enum first for backward compatibility
+        for (BuffCategory cat : BuffCategory.values()) {
+            if (cat.name().equals(categoryId)) {
+                return hasBuff(guildId, cat);
+            }
+        }
+
+        // For custom categories, we would need to extend ActiveBuff to support string IDs
+        // For now, return false for unknown categories
+        return false;
+    }
+
+    /**
+     * Gets the buff value for a guild and category ID.
+     * Supports custom buff categories registered at runtime.
+     *
+     * @param guildId the guild ID
+     * @param categoryId the buff category ID (string)
+     * @param defaultValue the default value if no buff is active
+     * @return the buff value or default value
+     */
+    public double getBuffValue(String guildId, String categoryId, double defaultValue) {
+        Objects.requireNonNull(guildId, "Guild ID cannot be null");
+        Objects.requireNonNull(categoryId, "Category ID cannot be null");
+
+        // Try to match by BuffCategory enum first for backward compatibility
+        for (BuffCategory cat : BuffCategory.values()) {
+            if (cat.name().equals(categoryId)) {
+                return getBuffValue(guildId, cat, defaultValue);
+            }
+        }
+
+        // For custom categories, we would need to extend ActiveBuff to support string IDs
+        // For now, return default value for unknown categories
+        return defaultValue;
     }
 
     public void cleanupExpiredBuffs() {

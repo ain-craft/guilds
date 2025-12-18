@@ -17,6 +17,12 @@ import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.Objects;
 
+/**
+ * Deprecated: Logic has been moved to individual handler implementations.
+ * This class is kept for backward compatibility and should not be used for new code.
+ * Use CropGrowthBuffHandler and ProtectionBuffHandler instead.
+ */
+@Deprecated
 @Singleton
 public class TerritoryBuffListener implements Listener {
 

@@ -54,7 +54,12 @@ import org.aincraft.commands.components.LevelUpComponent;
 import org.aincraft.commands.components.ProjectComponent;
 import org.aincraft.chat.GuildChatListener;
 import org.aincraft.project.BuffApplicationService;
+import org.aincraft.project.BuffCategoryRegistry;
+import org.aincraft.project.BuffType;
 import org.aincraft.project.ProjectRegistry;
+import org.aincraft.project.SimpleBuffCategory;
+import org.aincraft.project.handlers.CropGrowthBuffHandler;
+import org.aincraft.project.handlers.ProtectionBuffHandler;
 import org.aincraft.project.listeners.QuestProgressListener;
 import org.aincraft.project.listeners.TerritoryBuffListener;
 import org.aincraft.project.gui.ProjectGUIListener;
@@ -96,6 +101,7 @@ public class GuildsPlugin extends JavaPlugin {
     private SubregionService subregionService;
     private SubregionTypeRegistry typeRegistry;
     private MultiblockRegistry multiblockRegistry;
+    private BuffCategoryRegistry buffCategoryRegistry;
     private GuildMapRenderer mapRenderer;
     private AutoClaimManager autoClaimManager;
 
@@ -148,6 +154,7 @@ public class GuildsPlugin extends JavaPlugin {
         this.subregionService = injector.getInstance(SubregionService.class);
         this.typeRegistry = injector.getInstance(SubregionTypeRegistry.class);
         this.multiblockRegistry = injector.getInstance(MultiblockRegistry.class);
+        this.buffCategoryRegistry = injector.getInstance(BuffCategoryRegistry.class);
 
         // Initialize command components
         initializeComponents();
@@ -171,6 +178,9 @@ public class GuildsPlugin extends JavaPlugin {
 
         // Register progression system
         registerProgressionSystem();
+
+        // Register built-in buffs (must be before project system registration)
+        registerBuiltInBuffs();
 
         // Register project system
         registerProjectSystem();
@@ -304,12 +314,44 @@ public class GuildsPlugin extends JavaPlugin {
         getLogger().info("Guild progression system registered");
     }
 
+    private void registerBuiltInBuffs() {
+        // Get required services
+        GuildService guildService = injector.getInstance(GuildService.class);
+        BuffApplicationService buffService = injector.getInstance(BuffApplicationService.class);
+
+        // Register built-in buff categories
+        buffCategoryRegistry.registerBuiltIn(new SimpleBuffCategory("XP_MULTIPLIER", "XP Multiplier", BuffType.ECONOMY));
+        buffCategoryRegistry.registerBuiltIn(new SimpleBuffCategory("LUCK_BONUS", "Luck Bonus", BuffType.ECONOMY));
+        buffCategoryRegistry.registerBuiltIn(new SimpleBuffCategory("CROP_GROWTH_SPEED", "Crop Growth Speed", BuffType.TERRITORY, org.bukkit.Material.WHEAT));
+        buffCategoryRegistry.registerBuiltIn(new SimpleBuffCategory("MOB_SPAWN_RATE", "Mob Spawn Rate", BuffType.TERRITORY, org.bukkit.Material.SPAWNER));
+        buffCategoryRegistry.registerBuiltIn(new SimpleBuffCategory("PROTECTION_BOOST", "Protection Boost", BuffType.TERRITORY, org.bukkit.Material.DIAMOND_CHESTPLATE));
+
+        // Register handlers for territory buffs that have implementations
+        CropGrowthBuffHandler cropHandler = new CropGrowthBuffHandler(
+            buffCategoryRegistry.getCategory("CROP_GROWTH_SPEED").orElseThrow(),
+            buffService,
+            guildService
+        );
+        buffCategoryRegistry.registerHandler(cropHandler);
+        cropHandler.onRegister(this);
+
+        ProtectionBuffHandler protectionHandler = new ProtectionBuffHandler(
+            buffCategoryRegistry.getCategory("PROTECTION_BOOST").orElseThrow(),
+            buffService,
+            guildService
+        );
+        buffCategoryRegistry.registerHandler(protectionHandler);
+        protectionHandler.onRegister(this);
+
+        getLogger().info("Registered " + buffCategoryRegistry.size() + " buff categories with " + 2 + " handlers");
+    }
+
     private void registerProjectSystem() {
         // Register quest progress listener
         QuestProgressListener questListener = injector.getInstance(QuestProgressListener.class);
         getServer().getPluginManager().registerEvents(questListener, this);
 
-        // Register territory buff listener
+        // Register territory buff listener (deprecated but kept for backward compatibility)
         TerritoryBuffListener territoryBuffListener = injector.getInstance(TerritoryBuffListener.class);
         getServer().getPluginManager().registerEvents(territoryBuffListener, this);
 
@@ -332,6 +374,16 @@ public class GuildsPlugin extends JavaPlugin {
 
     public MultiblockRegistry getMultiblockRegistry() {
         return multiblockRegistry;
+    }
+
+    /**
+     * Gets the buff category registry for registering custom buffs.
+     * This is the public API for external plugins to register custom buff types.
+     *
+     * @return the buff category registry
+     */
+    public BuffCategoryRegistry getBuffCategoryRegistry() {
+        return buffCategoryRegistry;
     }
 
     // ==================== Suggestion Provider Methods ====================
