@@ -67,6 +67,13 @@ import org.aincraft.commands.components.MapComponent;
 import org.aincraft.commands.components.MemberComponent;
 import org.aincraft.commands.components.NameComponent;
 import org.aincraft.commands.components.NeutralComponent;
+import org.aincraft.commands.components.region.RegionComponent;
+import org.aincraft.commands.components.region.RegionBasicComponent;
+import org.aincraft.commands.components.region.RegionCommandHelper;
+import org.aincraft.commands.components.region.RegionOwnerComponent;
+import org.aincraft.commands.components.region.RegionPermissionComponent;
+import org.aincraft.commands.components.region.RegionSelectionComponent;
+import org.aincraft.commands.components.region.RegionTypeComponent;
 import org.aincraft.commands.components.RoleComponent;
 import org.aincraft.commands.components.SetspawnComponent;
 import org.aincraft.commands.components.SpawnComponent;
@@ -198,6 +205,10 @@ public class GuildsModule extends AbstractModule {
 
         // Guild lifecycle service (used by progression system)
         bind(org.aincraft.service.GuildLifecycleService.class).in(Singleton.class);
+        bind(org.aincraft.service.PermissionService.class).in(Singleton.class);
+        bind(org.aincraft.service.GuildMemberService.class).in(Singleton.class);
+        bind(org.aincraft.service.TerritoryService.class).in(Singleton.class);
+        bind(org.aincraft.service.SpawnService.class).in(Singleton.class);
 
         // Old extracted services (may need review)
         bind(ChunkClaimService.class).in(Singleton.class);
@@ -262,6 +273,16 @@ public class GuildsModule extends AbstractModule {
         bind(InvitesComponent.class).in(Singleton.class);
         bind(RoleComponent.class).in(Singleton.class);
         bind(MemberComponent.class).in(Singleton.class);
+
+        // Region component and subcomponents
+        bind(RegionCommandHelper.class).in(Singleton.class);
+        bind(RegionSelectionComponent.class).in(Singleton.class);
+        bind(RegionBasicComponent.class).in(Singleton.class);
+        bind(RegionTypeComponent.class).in(Singleton.class);
+        bind(RegionOwnerComponent.class).in(Singleton.class);
+        bind(RegionPermissionComponent.class).in(Singleton.class);
+        bind(RegionComponent.class).in(Singleton.class);
+
         bind(AllyComponent.class).in(Singleton.class);
         bind(EnemyComponent.class).in(Singleton.class);
         bind(NeutralComponent.class).in(Singleton.class);

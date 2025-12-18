@@ -226,13 +226,7 @@ public class GuildsPlugin extends JavaPlugin {
         invitesComponent = injector.getInstance(InvitesComponent.class);
         roleComponent = injector.getInstance(RoleComponent.class);
         memberComponent = injector.getInstance(MemberComponent.class);
-
-        // Initialize complex components
-        SelectionManager selectionManager = injector.getInstance(SelectionManager.class);
-        RegionPermissionService regionPermissionService = injector.getInstance(RegionPermissionService.class);
-        org.aincraft.subregion.RegionTypeLimitRepository limitRepository = injector.getInstance(org.aincraft.subregion.RegionTypeLimitRepository.class);
-        org.aincraft.subregion.RegionVisualizer regionVisualizer = injector.getInstance(org.aincraft.subregion.RegionVisualizer.class);
-        regionComponent = new RegionComponent(guildService, subregionService, selectionManager, typeRegistry, regionPermissionService, limitRepository, regionVisualizer);
+        regionComponent = injector.getInstance(RegionComponent.class);
 
         VaultService vaultService = injector.getInstance(VaultService.class);
         org.aincraft.vault.gui.SharedVaultInventoryManager sharedVaultInventoryManager = injector.getInstance(org.aincraft.vault.gui.SharedVaultInventoryManager.class);
