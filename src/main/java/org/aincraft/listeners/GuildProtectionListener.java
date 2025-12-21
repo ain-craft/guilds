@@ -89,24 +89,40 @@ public class GuildProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        // Only check for block interactions
-        Block block = event.getClickedBlock();
-        if (block == null) {
-            return;
-        }
-
-        // Only protect interactable blocks (chests, doors, buttons, etc.)
-        if (!isProtectedInteraction(block)) {
-            return;
-        }
-
         Player player = event.getPlayer();
-        Location loc = block.getLocation();
 
-        if (!canPerformAction(player, loc, GuildPermission.INTERACT)) {
+        // Check for block interactions
+        Block block = event.getClickedBlock();
+        if (block != null) {
+            // Only protect interactable blocks (chests, doors, buttons, etc.)
+            if (!isProtectedInteraction(block)) {
+                return;
+            }
+
+            Location loc = block.getLocation();
+
+            if (!canPerformAction(player, loc, GuildPermission.INTERACT)) {
+                event.setCancelled(true);
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
+                        "You don't have permission to interact here"));
+            }
+            return;
+        }
+
+        // Check for restricted item usage in air (mob eggs, splash potions, etc.)
+        if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR) {
+            return;
+        }
+
+        if (!isRestrictedItem(event.getItem())) {
+            return;
+        }
+
+        Location loc = player.getLocation();
+        if (!canPerformAction(player, loc, GuildPermission.BUILD)) {
             event.setCancelled(true);
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
-                    "You don't have permission to interact here"));
+                    "You don't have permission to use this item here"));
         }
     }
 
@@ -138,6 +154,29 @@ public class GuildProtectionListener implements Listener {
     private boolean isProtectedMinecart(Minecart minecart) {
         String type = minecart.getType().toString();
         return type.equals("CHEST") || type.equals("HOPPER");
+    }
+
+    /**
+     * Checks if an item is restricted from being used in claimed territory.
+     */
+    private boolean isRestrictedItem(org.bukkit.inventory.ItemStack item) {
+        if (item == null) {
+            return false;
+        }
+
+        Material material = item.getType();
+
+        // Mob spawn eggs
+        if (material.toString().endsWith("_SPAWN_EGG")) {
+            return true;
+        }
+
+        // Potions and splash potions
+        return switch (material) {
+            case SPLASH_POTION, LINGERING_POTION, ENDER_PEARL,
+                 SNOWBALL, EGG, FIRE_CHARGE, WIND_CHARGE -> true;
+            default -> false;
+        };
     }
 
     /**
