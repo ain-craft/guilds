@@ -6,6 +6,9 @@ import org.aincraft.GuildRole;
 import org.aincraft.MemberPermissions;
 import org.aincraft.project.storage.GuildProjectPoolRepository;
 import org.aincraft.storage.*;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 
 import java.util.List;
 import java.util.Objects;
@@ -92,6 +95,7 @@ public class GuildLifecycleService {
 
     /**
      * Deletes a guild if the requester is the owner.
+     * Notifies all guild members before deletion.
      *
      * @param guildId the guild ID
      * @param requesterId the UUID of the player requesting deletion
@@ -111,6 +115,8 @@ public class GuildLifecycleService {
             return false;
         }
 
+        notifyMembersOfDisband(guild);
+
         for (UUID memberId : guild.getMembers()) {
             playerGuildMapping.removePlayerFromGuild(memberId);
         }
@@ -123,6 +129,23 @@ public class GuildLifecycleService {
 
         guildRepository.delete(guildId);
         return true;
+    }
+
+    /**
+     * Notifies all guild members that their guild has been disbanded.
+     *
+     * @param guild the guild being disbanded
+     */
+    private void notifyMembersOfDisband(Guild guild) {
+        MiniMessage mm = MiniMessage.miniMessage();
+        String disbandMessage = "<red>✗ Guild '<gold>" + guild.getName() + "</gold>' has been disbanded by the owner</red>";
+
+        for (UUID memberId : guild.getMembers()) {
+            Player player = Bukkit.getPlayer(memberId);
+            if (player != null && player.isOnline()) {
+                player.sendMessage(mm.deserialize(disbandMessage));
+            }
+        }
     }
 
     /**

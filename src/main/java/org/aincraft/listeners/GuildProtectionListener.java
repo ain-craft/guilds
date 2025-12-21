@@ -19,6 +19,7 @@ import org.aincraft.subregion.SubregionService;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -33,6 +34,7 @@ import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 
 /**
  * Event listener for protecting guild-claimed chunks and subregions.
@@ -106,6 +108,36 @@ public class GuildProtectionListener implements Listener {
             player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
                     "You don't have permission to interact here"));
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerInteractEntity(PlayerInteractAtEntityEvent event) {
+        // Only protect chest minecarts
+        if (!(event.getRightClicked() instanceof Minecart minecart)) {
+            return;
+        }
+
+        // Check if it's a storage minecart (chest or hopper)
+        if (!isProtectedMinecart(minecart)) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        Location loc = minecart.getLocation();
+
+        if (!canPerformAction(player, loc, GuildPermission.INTERACT)) {
+            event.setCancelled(true);
+            player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
+                    "You don't have permission to interact here"));
+        }
+    }
+
+    /**
+     * Checks if a minecart is a protected storage type (chest or hopper minecarts).
+     */
+    private boolean isProtectedMinecart(Minecart minecart) {
+        String type = minecart.getType().toString();
+        return type.equals("CHEST") || type.equals("HOPPER");
     }
 
     /**
@@ -378,6 +410,9 @@ public class GuildProtectionListener implements Listener {
                  OAK_TRAPDOOR, SPRUCE_TRAPDOOR, BIRCH_TRAPDOOR, JUNGLE_TRAPDOOR,
                  ACACIA_TRAPDOOR, DARK_OAK_TRAPDOOR, MANGROVE_TRAPDOOR, CHERRY_TRAPDOOR,
                  BAMBOO_TRAPDOOR, CRIMSON_TRAPDOOR, WARPED_TRAPDOOR, IRON_TRAPDOOR,
+                 // Copper trapdoors
+                 COPPER_TRAPDOOR, EXPOSED_COPPER_TRAPDOOR, WEATHERED_COPPER_TRAPDOOR, OXIDIZED_COPPER_TRAPDOOR,
+                 WAXED_COPPER_TRAPDOOR, WAXED_EXPOSED_COPPER_TRAPDOOR, WAXED_WEATHERED_COPPER_TRAPDOOR, WAXED_OXIDIZED_COPPER_TRAPDOOR,
                  OAK_FENCE_GATE, SPRUCE_FENCE_GATE, BIRCH_FENCE_GATE, JUNGLE_FENCE_GATE,
                  ACACIA_FENCE_GATE, DARK_OAK_FENCE_GATE, MANGROVE_FENCE_GATE,
                  CHERRY_FENCE_GATE, BAMBOO_FENCE_GATE, CRIMSON_FENCE_GATE, WARPED_FENCE_GATE,
@@ -387,6 +422,11 @@ public class GuildProtectionListener implements Listener {
                  CHERRY_BUTTON, BAMBOO_BUTTON, CRIMSON_BUTTON, WARPED_BUTTON,
                  POLISHED_BLACKSTONE_BUTTON, REPEATER, COMPARATOR, DAYLIGHT_DETECTOR,
                  NOTE_BLOCK, JUKEBOX,
+                 // Pressure plates
+                 STONE_PRESSURE_PLATE, OAK_PRESSURE_PLATE, SPRUCE_PRESSURE_PLATE, BIRCH_PRESSURE_PLATE,
+                 JUNGLE_PRESSURE_PLATE, ACACIA_PRESSURE_PLATE, DARK_OAK_PRESSURE_PLATE, MANGROVE_PRESSURE_PLATE,
+                 CHERRY_PRESSURE_PLATE, BAMBOO_PRESSURE_PLATE, CRIMSON_PRESSURE_PLATE, WARPED_PRESSURE_PLATE,
+                 POLISHED_BLACKSTONE_PRESSURE_PLATE, LIGHT_WEIGHTED_PRESSURE_PLATE, HEAVY_WEIGHTED_PRESSURE_PLATE,
                  // Utility
                  ANVIL, CHIPPED_ANVIL, DAMAGED_ANVIL, ENCHANTING_TABLE,
                  LECTERN, GRINDSTONE, STONECUTTER, LOOM, CARTOGRAPHY_TABLE,
@@ -406,9 +446,10 @@ public class GuildProtectionListener implements Listener {
                  OAK_HANGING_SIGN, SPRUCE_HANGING_SIGN, BIRCH_HANGING_SIGN, JUNGLE_HANGING_SIGN,
                  ACACIA_HANGING_SIGN, DARK_OAK_HANGING_SIGN, MANGROVE_HANGING_SIGN, CHERRY_HANGING_SIGN,
                  BAMBOO_HANGING_SIGN, CRIMSON_HANGING_SIGN, WARPED_HANGING_SIGN,
-                 // Misc
-                 RESPAWN_ANCHOR, BELL, COMPOSTER, FLOWER_POT,
-                 ARMOR_STAND, ITEM_FRAME, GLOW_ITEM_FRAME -> true;
+                 // Bookshelves
+                 BOOKSHELF, CHISELED_BOOKSHELF,
+                 // Decorated pots
+                 DECORATED_POT -> true;
             default -> false;
         };
     }
