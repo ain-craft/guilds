@@ -64,6 +64,20 @@ public class UnclaimComponent implements GuildCommand {
 
         // Check if "all" argument is provided
         if (args.length > 1 && "all".equalsIgnoreCase(args[1])) {
+            // Check for any subregions before unclaiming all
+            List<Subregion> allSubregions = subregionService.getGuildSubregions(guild.getId());
+            if (!allSubregions.isEmpty()) {
+                player.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
+                        "Cannot unclaim all chunks - guild contains " + allSubregions.size() + " subregion(s):"));
+                for (Subregion region : allSubregions) {
+                    player.sendMessage(MessageFormatter.deserialize(
+                            "<gray>  • <gold>" + region.getName() + "</gold></gray>"));
+                }
+                player.sendMessage(MessageFormatter.deserialize(
+                        "<gray>Delete subregions first with <yellow>/g region delete <name></yellow></gray>"));
+                return true;
+            }
+
             territoryService.unclaimAll(guild.getId());
             player.sendMessage(MessageFormatter.deserialize("<green>Unclaimed all chunks for <gold>" + guild.getName() + "</gold></green>"));
         } else {
