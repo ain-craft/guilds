@@ -438,6 +438,75 @@ public final class Sql {
         };
     }
 
+    // ==================== GUILD DEFAULT ROLE ASSIGNMENTS ====================
+
+    public static String createGuildDefaultRoleAssignmentsTable(DatabaseType type) {
+        return switch (type) {
+            case SQLITE -> """
+                CREATE TABLE IF NOT EXISTS guild_default_role_assignments (
+                    guild_id TEXT NOT NULL,
+                    subject_type TEXT NOT NULL,
+                    role_id TEXT NOT NULL,
+                    PRIMARY KEY (guild_id, subject_type)
+                )
+                """;
+            case MYSQL, MARIADB, POSTGRESQL, H2 -> """
+                CREATE TABLE IF NOT EXISTS guild_default_role_assignments (
+                    guild_id VARCHAR(36) NOT NULL,
+                    subject_type VARCHAR(32) NOT NULL,
+                    role_id VARCHAR(36) NOT NULL,
+                    PRIMARY KEY (guild_id, subject_type)
+                )
+                """;
+        };
+    }
+
+    public static String upsertGuildDefaultRoleAssignment(DatabaseType type) {
+        return switch (type) {
+            case SQLITE -> """
+                INSERT OR REPLACE INTO guild_default_role_assignments (guild_id, subject_type, role_id)
+                VALUES (?, ?, ?)
+                """;
+            case MYSQL, MARIADB -> """
+                INSERT INTO guild_default_role_assignments (guild_id, subject_type, role_id)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE role_id = VALUES(role_id)
+                """;
+            case POSTGRESQL -> """
+                INSERT INTO guild_default_role_assignments (guild_id, subject_type, role_id)
+                VALUES (?, ?, ?)
+                ON CONFLICT (guild_id, subject_type) DO UPDATE SET role_id = EXCLUDED.role_id
+                """;
+            case H2 -> """
+                MERGE INTO guild_default_role_assignments (guild_id, subject_type, role_id)
+                KEY (guild_id, subject_type) VALUES (?, ?, ?)
+                """;
+        };
+    }
+
+    public static String getGuildDefaultRoleAssignment(DatabaseType type) {
+        return """
+            SELECT guild_id, subject_type, role_id
+            FROM guild_default_role_assignments
+            WHERE guild_id = ? AND subject_type = ?
+            """;
+    }
+
+    public static String getGuildDefaultRoleAssignmentsByGuild(DatabaseType type) {
+        return """
+            SELECT guild_id, subject_type, role_id
+            FROM guild_default_role_assignments
+            WHERE guild_id = ?
+            """;
+    }
+
+    public static String deleteGuildDefaultRoleAssignment(DatabaseType type) {
+        return """
+            DELETE FROM guild_default_role_assignments
+            WHERE guild_id = ? AND subject_type = ?
+            """;
+    }
+
     // ==================== GUILD DEFAULT PERMISSIONS ====================
 
     public static String createGuildDefaultPermissionsTable(DatabaseType type) {

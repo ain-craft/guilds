@@ -66,11 +66,16 @@ public class GuildChatListener implements Listener {
             return;
         }
 
-        // Check permission (owners bypass)
+        // Check appropriate permission based on mode (owners bypass)
+        GuildPermission requiredPermission = (mode == ChatMode.OFFICER)
+            ? GuildPermission.CHAT_OFFICER
+            : GuildPermission.CHAT_GUILD;
+
         if (!guild.isOwner(sender.getUniqueId()) &&
-            !permissionService.hasPermission(guild.getId(), sender.getUniqueId(), GuildPermission.CHAT_GUILD)) {
+            !permissionService.hasPermission(guild.getId(), sender.getUniqueId(), requiredPermission)) {
+            String chatType = (mode == ChatMode.OFFICER) ? "officer" : "guild";
             sender.sendMessage(MessageFormatter.format(MessageFormatter.ERROR,
-                "You don't have permission to use guild chat."));
+                "You don't have permission to use " + chatType + " chat."));
             event.setCancelled(true);
             return;
         }
@@ -86,6 +91,8 @@ public class GuildChatListener implements Listener {
             handleGuildChat(sender, guild, message);
         } else if (mode == ChatMode.ALLY) {
             handleAllyChat(sender, guild, message);
+        } else if (mode == ChatMode.OFFICER) {
+            handleOfficerChat(sender, guild, message);
         }
     }
 
@@ -129,6 +136,29 @@ public class GuildChatListener implements Listener {
     }
 
     /**
+     * Handles officer chat - sends message to guild members with CHAT_OFFICER permission.
+     */
+    private void handleOfficerChat(Player sender, Guild guild, String message) {
+        Component chatMessage = formatOfficerChatMessage(sender, guild, message);
+
+        // Send to all online guild members with CHAT_OFFICER permission
+        Bukkit.getOnlinePlayers().stream()
+            .filter(p -> {
+                Guild playerGuild = memberService.getPlayerGuild(p.getUniqueId());
+                if (playerGuild == null || !playerGuild.getId().equals(guild.getId())) {
+                    return false;
+                }
+                // Owner always receives officer chat
+                if (guild.isOwner(p.getUniqueId())) {
+                    return true;
+                }
+                // Check CHAT_OFFICER permission
+                return permissionService.hasPermission(guild.getId(), p.getUniqueId(), GuildPermission.CHAT_OFFICER);
+            })
+            .forEach(p -> p.sendMessage(chatMessage));
+    }
+
+    /**
      * Formats a guild chat message.
      * Format: [G] [GuildName] PlayerName: message
      */
@@ -155,6 +185,25 @@ public class GuildChatListener implements Listener {
         Component prefix = Component.text("[A] ", NamedTextColor.AQUA);
         Component guildTag = Component.text("[" + guild.getName() + "]", NamedTextColor.GOLD)
             .hoverEvent(HoverEvent.showText(Component.text("Guild: " + guild.getName(), NamedTextColor.YELLOW)));
+        Component playerName = Component.text(sender.getName() + ": ", NamedTextColor.WHITE);
+        Component msg = Component.text(message, NamedTextColor.GRAY);
+
+        return Component.empty()
+            .append(prefix)
+            .append(guildTag)
+            .append(Component.space())
+            .append(playerName)
+            .append(msg);
+    }
+
+    /**
+     * Formats an officer chat message.
+     * Format: [O] [GuildName] PlayerName: message
+     */
+    private Component formatOfficerChatMessage(Player sender, Guild guild, String message) {
+        Component prefix = Component.text("[O] ", NamedTextColor.GOLD);
+        Component guildTag = Component.text("[" + guild.getName() + "]", NamedTextColor.YELLOW)
+            .hoverEvent(HoverEvent.showText(Component.text("Officer Chat", NamedTextColor.GOLD)));
         Component playerName = Component.text(sender.getName() + ": ", NamedTextColor.WHITE);
         Component msg = Component.text(message, NamedTextColor.GRAY);
 

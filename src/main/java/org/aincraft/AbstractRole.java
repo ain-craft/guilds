@@ -14,6 +14,7 @@ public abstract class AbstractRole<T> implements Permissible {
     protected final T scopeId;
     protected String name;
     protected int permissions;
+    protected int priority;
     protected final UUID createdBy;
     protected final Long createdAt;
 
@@ -24,15 +25,17 @@ public abstract class AbstractRole<T> implements Permissible {
      * @param scopeId the scope this role belongs to (guild ID or region ID)
      * @param name the role name
      * @param permissions the permission bitfield
+     * @param priority the role priority (higher = more authority)
      * @param createdBy the UUID of the creator (nullable for legacy roles)
      * @param createdAt the creation timestamp (nullable for legacy roles)
      */
-    protected AbstractRole(String id, T scopeId, String name, int permissions,
+    protected AbstractRole(String id, T scopeId, String name, int permissions, int priority,
                           UUID createdBy, Long createdAt) {
         this.id = Objects.requireNonNull(id, "ID cannot be null");
         this.scopeId = Objects.requireNonNull(scopeId, "Scope ID cannot be null");
         this.name = Objects.requireNonNull(name, "Name cannot be null");
         this.permissions = permissions;
+        this.priority = priority;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
     }
@@ -60,6 +63,14 @@ public abstract class AbstractRole<T> implements Permissible {
 
     public void setPermissions(int permissions) {
         this.permissions = permissions;
+    }
+
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 
     public UUID getCreatedBy() {

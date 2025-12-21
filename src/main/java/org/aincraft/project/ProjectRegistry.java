@@ -70,7 +70,7 @@ public class ProjectRegistry {
         // Parse buff
         ConfigurationSection buffSection = section.getConfigurationSection("buff");
         BuffDefinition buff = parseBuffDefinition(buffSection);
-        BuffType buffType = BuffType.valueOf(section.getString("buff.type", "ECONOMY").toUpperCase());
+        BuffType buffType = BuffType.valueOf(section.getString("buff.type", "GLOBAL").toUpperCase());
 
         // Parse duration
         String durationStr = section.getString("buff.duration", "7d");

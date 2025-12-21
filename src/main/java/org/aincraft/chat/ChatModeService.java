@@ -15,7 +15,7 @@ public class ChatModeService {
     private final Map<UUID, ChatMode> playerChatModes = new ConcurrentHashMap<>();
 
     public enum ChatMode {
-        PUBLIC, GUILD, ALLY
+        PUBLIC, GUILD, ALLY, OFFICER
     }
 
     /**

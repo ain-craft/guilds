@@ -171,8 +171,8 @@ public class JdbcRegionRoleRepository implements RegionRoleRepository {
             rs.getString("region_id"),
             rs.getString("name"),
             rs.getInt("permissions"),
-            rs.getLong("created_at"),
-            UUID.fromString(rs.getString("created_by"))
+            UUID.fromString(rs.getString("created_by")),
+            rs.getLong("created_at")
         );
     }
 

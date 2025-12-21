@@ -51,6 +51,7 @@ import org.aincraft.commands.components.ToggleComponent;
 import org.aincraft.commands.components.UnclaimComponent;
 import org.aincraft.commands.components.GuildChatComponent;
 import org.aincraft.commands.components.AllyChatComponent;
+import org.aincraft.commands.components.OfficerChatComponent;
 import org.aincraft.commands.components.LevelUpComponent;
 import org.aincraft.commands.components.ProjectComponent;
 import org.aincraft.chat.GuildChatListener;
@@ -132,6 +133,7 @@ public class GuildsPlugin extends JavaPlugin {
     private NeutralComponent neutralComponent;
     private GuildChatComponent guildChatComponent;
     private AllyChatComponent allyChatComponent;
+    private OfficerChatComponent officerChatComponent;
     private AdminComponent adminComponent;
     private LevelUpComponent levelUpComponent;
     private ProjectComponent projectComponent;
@@ -243,6 +245,7 @@ public class GuildsPlugin extends JavaPlugin {
         neutralComponent = injector.getInstance(NeutralComponent.class);
         guildChatComponent = injector.getInstance(GuildChatComponent.class);
         allyChatComponent = injector.getInstance(AllyChatComponent.class);
+        officerChatComponent = injector.getInstance(OfficerChatComponent.class);
         adminComponent = injector.getInstance(AdminComponent.class);
         levelUpComponent = injector.getInstance(LevelUpComponent.class);
         projectComponent = injector.getInstance(ProjectComponent.class);
@@ -950,6 +953,24 @@ public class GuildsPlugin extends JavaPlugin {
                 .build(),
             "Ally chat",
             List.of("allychat")
+        );
+
+        // /oc command - Officer chat
+        commands.register(
+            Commands.literal("oc")
+                .executes(context -> {
+                    officerChatComponent.execute(context.getSource().getSender(), new String[]{});
+                    return 1;
+                })
+                .then(Commands.argument("message", StringArgumentType.greedyString())
+                    .executes(context -> {
+                        String message = StringArgumentType.getString(context, "message");
+                        officerChatComponent.execute(context.getSource().getSender(), new String[]{message});
+                        return 1;
+                    }))
+                .build(),
+            "Officer chat",
+            List.of("officerchat")
         );
     }
 

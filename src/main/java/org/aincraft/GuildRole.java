@@ -9,8 +9,6 @@ import java.util.UUID;
 public final class GuildRole extends AbstractRole<UUID> {
     public static final String DEFAULT_ROLE_NAME = "Member";
 
-    private int priority;
-
     /**
      * Creates a new GuildRole.
      *
@@ -38,10 +36,10 @@ public final class GuildRole extends AbstractRole<UUID> {
             guildId,
             name,
             permissions,
+            priority,
             createdBy,
             createdBy != null ? System.currentTimeMillis() : null
         );
-        this.priority = priority;
     }
 
     /**
@@ -68,8 +66,7 @@ public final class GuildRole extends AbstractRole<UUID> {
      */
     public GuildRole(String id, UUID guildId, String name, int permissions, int priority,
                      UUID createdBy, Long createdAt) {
-        super(id, guildId, name, permissions, createdBy, createdAt);
-        this.priority = priority;
+        super(id, guildId, name, permissions, priority, createdBy, createdAt);
     }
 
     /**
@@ -84,14 +81,6 @@ public final class GuildRole extends AbstractRole<UUID> {
      */
     public UUID getGuildId() {
         return getScopeId();
-    }
-
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = priority;
     }
 
     /**

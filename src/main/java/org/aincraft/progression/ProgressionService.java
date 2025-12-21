@@ -78,21 +78,28 @@ public class ProgressionService {
             return; // No XP gain at max level
         }
 
-        // Add XP
-        progression.addXp(baseAmount);
+        // Calculate XP cap for current level
+        long xpRequired = calculateXpRequired(progression.getLevel() + 1);
+        long currentXp = progression.getCurrentXp();
+        long xpToAdd = Math.min(baseAmount, xpRequired - currentXp);
+
+        // Add XP (capped to not exceed requirement)
+        if (xpToAdd > 0) {
+            progression.addXp(xpToAdd);
+        }
 
         // Save progression
         progressionRepository.save(progression);
 
-        // Record contribution
-        progressionRepository.recordContribution(guildId, playerId, baseAmount);
+        // Record contribution (only the amount actually added)
+        progressionRepository.recordContribution(guildId, playerId, xpToAdd);
 
-        // Log XP gain
+        // Log XP gain (only the amount actually added)
         logRepository.log(new ProgressionLog(
             guildId,
             playerId,
             ProgressionLog.ActionType.XP_GAIN,
-            baseAmount,
+            xpToAdd,
             source.name()
         ));
     }
@@ -112,7 +119,7 @@ public class ProgressionService {
         double baseXp = config.getBaseXp();
         double growthFactor = config.getGrowthFactor();
 
-        return (long) (baseXp * Math.pow(growthFactor, level - 2));
+        return (long) Math.ceil(baseXp * Math.pow(growthFactor, level - 2));
     }
 
     /**

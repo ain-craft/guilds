@@ -84,6 +84,7 @@ import org.aincraft.chat.ChatModeService;
 import org.aincraft.chat.GuildChatListener;
 import org.aincraft.commands.components.GuildChatComponent;
 import org.aincraft.commands.components.AllyChatComponent;
+import org.aincraft.commands.components.OfficerChatComponent;
 import org.aincraft.config.GuildsConfig;
 import org.aincraft.listeners.GuildProtectionListener;
 import org.aincraft.multiblock.MultiblockListener;
@@ -287,6 +288,7 @@ public class GuildsModule extends AbstractModule {
         bind(NeutralComponent.class).in(Singleton.class);
         bind(GuildChatComponent.class).in(Singleton.class);
         bind(AllyChatComponent.class).in(Singleton.class);
+        bind(OfficerChatComponent.class).in(Singleton.class);
         bind(AdminComponent.class).in(Singleton.class);
         bind(LevelUpComponent.class).in(Singleton.class);
         bind(ProjectComponent.class).in(Singleton.class);

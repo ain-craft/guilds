@@ -18,6 +18,7 @@ public class RegionRole extends AbstractRole<UUID> {
             regionId,
             name,
             permissions,
+            0,  // default priority
             createdBy,
             System.currentTimeMillis()
         );
@@ -26,8 +27,8 @@ public class RegionRole extends AbstractRole<UUID> {
     /**
      * Constructor for loading from database.
      */
-    public RegionRole(String id, String regionIdStr, String name, int permissions, long createdAt, UUID createdBy) {
-        super(id, UUID.fromString(regionIdStr), name, permissions, createdBy, createdAt);
+    public RegionRole(String id, String regionIdStr, String name, int permissions, UUID createdBy, long createdAt) {
+        super(id, UUID.fromString(regionIdStr), name, permissions, 0, createdBy, createdAt);
     }
 
     /**
